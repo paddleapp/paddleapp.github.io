@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Holiday Overtime · Paddle App</title>
+
+<script src="analytics.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/pa-account.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b4ea2">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/pa-run-card.css">
+<link rel="stylesheet" href="assets/pa-scorecard.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{overflow-x:clip}
+body{background:#eef2f8;color:#08122b;font-family:'IBM Plex Sans Condensed',system-ui,sans-serif;min-height:100vh;padding-bottom:40px}
+
+/* Header band like Pull Outs: title, depot, search, date tags. */
+.ot-head{position:sticky;top:60px;z-index:200;background:#0b4ea2;padding:8px 16px 12px;border-bottom:3px solid #c8102e}
+.ot-title{color:#fff;font-size:19px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;text-align:center;margin:0 0 8px}
+.ot-select-wrap{position:relative}
+.ot-select{width:100%;appearance:none;-webkit-appearance:none;background:#fff;color:#0b4ea2;border:0;border-bottom:3px solid #c8102e;border-radius:8px;
+  font:inherit;font-size:17px;font-weight:700;padding:10px 36px 9px 12px;box-shadow:0 2px 6px rgba(8,18,43,.25)}
+.ot-arrow{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#c8102e;pointer-events:none;font-size:14px}
+/* Route + sort + count, under the band. */
+.ot-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid #d5dce8}
+.ot-tools select{appearance:none;-webkit-appearance:none;background:#f2f5fa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%230b4ea2'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border:1px solid #c9d3e3;border-radius:8px;font:inherit;font-size:15px;font-weight:700;color:#0b4ea2;padding:8px 28px 8px 10px;min-width:0}
+#otSort{flex:1 1 150px}
+/* Route chips (Paddles look, pa-theme .fchip): tap one or more, the runs on any of them. */
+.ot-routes{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px}
+.ot-routes[hidden]{display:none}
+.ot-routes .fchip{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;padding:7px 12px;border-radius:4px;border:1px solid #c9d3e3;background:#f2f5fa;color:#0b4ea2;cursor:pointer;white-space:nowrap}
+.ot-routes .fchip .cnt{font-size:11px;font-weight:600;opacity:.65;margin-left:5px}
+.ot-routes .fchip.all{font-family:inherit;letter-spacing:.03em}
+.ot-count{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#56627a;white-space:nowrap}
+
+/* One holiday date: its header, then the runs. */
+.ot-day{padding:14px 12px 4px}
+.ot-dh{display:flex;gap:12px;background:#fff;border:1px solid #c9d3e3;border-radius:10px;padding:10px;box-shadow:0 2px 6px rgba(8,18,43,.06)}
+.ot-cal{flex:0 0 58px;border-radius:8px;color:#fff;text-align:center;padding:6px 0 7px;font-family:'IBM Plex Mono',monospace;align-self:flex-start;background:#0b4ea2}
+.ot-cal .dw{font-size:11px;font-weight:600;letter-spacing:.06em;opacity:.9}
+.ot-cal .dn{font-size:24px;font-weight:700;line-height:1.05}
+.ot-cal .mo{font-size:11px;font-weight:600;letter-spacing:.06em;opacity:.9}
+.ot-dh.sun .ot-cal{background:#12753a}.ot-dh.sat .ot-cal{background:#c8102e}.ot-dh.alt .ot-cal{background:#b4510d}
+.ot-dh-body{flex:1;min-width:0}
+.ot-dh-top{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.ot-name{font-weight:800;font-size:18px;color:#08122b}
+.ot-when{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:#e6ecf6;color:#3a4660}
+.ot-when.now{background:#0b4ea2;color:#fff}
+.ot-badges{margin-top:4px}
+.ot-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;padding:3px 7px;border-radius:4px;margin:2px 4px 2px 0}
+.ot-badge.wkd{background:#e8f1ff;color:#0b4ea2}.ot-badge.sun{background:#e7f4ec;color:#12753a}.ot-badge.sat{background:#fde8eb;color:#c8102e}
+.ot-badge.alt{background:#fff1d6;color:#b4510d;box-shadow:inset 0 0 0 1px rgba(180,81,13,.35)}
+.ot-pick{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;font-size:15px;line-height:1.35}
+.ot-pick b{font-weight:800}
+.ot-left{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:#e7f4ec;color:#12753a;white-space:nowrap}
+.ot-left.soon{background:#ffd400;color:#2b2200}
+.ot-left.closed{background:#e6ecf6;color:#56627a}
+.ot-warn{margin-top:6px;font-size:14px;line-height:1.4;color:#3a2400;background:#fff1d6;border-left:3px solid #c8102e;padding:6px 8px;border-radius:4px}
+.ot-n{margin-top:6px;font-size:13px;color:#56627a}
+
+/* Cards in a grid like Paddles / Pull Outs: 340px columns. */
+.ot-grid{padding:12px 0 8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:12px;align-items:start}
+.ot-strip{display:flex;align-items:center;gap:8px;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:#fff;background:#0b4ea2}
+.ot-strip .ot-s-date{font-size:14px;white-space:nowrap}
+.ot-strip .ot-s-sch{font-size:11px;letter-spacing:.04em;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.2);white-space:nowrap}
+.ot-strip .ot-s-left{margin-left:auto;white-space:nowrap;font-size:11px;padding:2px 7px;border-radius:10px;background:#fff;color:#0b4ea2}
+.ot-card.sun .ot-strip{background:#12753a}.ot-card.sun .ot-s-left{color:#12753a}
+.ot-card.sat .ot-strip{background:#c8102e}.ot-card.sat .ot-s-left{color:#c8102e}
+.ot-card.alt .ot-strip{background:#b4510d}.ot-card.alt .ot-s-left{color:#b4510d}
+.ot-card.closed{opacity:.55;filter:grayscale(.8)}
+.ot-card .prc-stack{border-radius:8px;overflow:hidden}
+.ot-miss{background:#fff;border:1px dashed #c9d3e3;border-radius:8px;padding:12px 14px;font-size:15px;line-height:1.4;color:#3a4660}
+.ot-miss b{color:#08122b}
+
+.ot-msg{text-align:center;padding:48px 16px;color:#56627a;font-size:15px;line-height:1.5}
+.ot-msg b{color:#08122b}
+.ot-note{margin:4px 12px 0;padding:8px 12px;font-size:13px;line-height:1.4;color:#3a2400;background:#fff1d6;border-radius:6px}
+.ot-past{display:block;margin:16px auto 0;font:inherit;font-size:14px;font-weight:700;color:#0b4ea2;background:none;border:1.5px solid #0b4ea2;border-radius:20px;padding:8px 16px;cursor:pointer}
+.ot-foot{max-width:720px;margin:18px auto 0;padding:0 16px;font-size:13px;line-height:1.5;color:#56627a;text-align:center}
+@media (max-width:420px){.ot-name{font-size:16px}.ot-cal{flex-basis:52px}.ot-cal .dn{font-size:21px}}
+</style>
+<link rel="stylesheet" href="assets/pa-theme.css">
+<style>
+/* After the theme: it paints a stacked card's top light; the strip keeps its day colour. */
+.ot-card .prc-stack .ot-strip.prc-top{background:#0b4ea2 !important;color:#fff !important;border:0 !important}
+.ot-card.sun .prc-stack .ot-strip.prc-top{background:#12753a !important}
+.ot-card.sat .prc-stack .ot-strip.prc-top{background:#c8102e !important}
+.ot-card.alt .prc-stack .ot-strip.prc-top{background:#b4510d !important}
+.ot-card .prc-stack{border:1px solid #c9d3e3 !important}
+</style>
+<link rel="stylesheet" href="assets/pa-menu.css">
+<link rel="stylesheet" href="assets/pa-tags.css">
+<script src="assets/pa-menu.js" defer></script>
+<script src="assets/pa-tags.js"></script>
+<script src="assets/pa-holiday.js"></script>
+<script src="assets/pa-overtime.js"></script>
+</head>
+<body>
+
+<div class="ot-head">
+  <h1 class="ot-title">Holiday Overtime</h1>
+  <div class="ot-select-wrap">
+    <select id="otDepot" class="ot-select" aria-label="Depot" autocomplete="off"><option value="">Loading depots…</option></select>
+    <span class="ot-arrow">▾</span>
+  </div>
+</div>
+
+<div class="ot-tools">
+  <div id="otRoutes" class="ot-routes" role="group" aria-label="Routes" hidden></div>
+  <select id="otSort" aria-label="Sort" autocomplete="off">
+    <option value="run-asc">Run</option>
+    <option value="start-asc">Earliest Start</option>
+    <option value="start-desc">Latest Start</option>
+    <option value="finish-asc">Earliest Finish</option>
+    <option value="finish-desc">Latest Finish</option>
+    <option value="pay-desc">Pay (Highest)</option>
+    <option value="pay-asc">Pay (Lowest)</option>
+    <option value="swing-desc">Swing (Longest)</option>
+    <option value="swing-asc">No Swing First</option>
+  </select>
+  <span id="otCount" class="ot-count"></span>
+</div>
+
+<div id="otNote"></div>
+<div id="otList"><div class="ot-msg">Loading the overtime list…</div></div>
+<div class="ot-foot">Runs posted for holiday overtime sign-up. Times are from the paddles of the schedule SEPTA runs that day.
+  This is an unofficial tool: always check the list posted at your depot.</div>
+
+<script type="module">
+// ==========================================================================
+// Holiday Overtime: the runs posted for overtime sign-up on a holiday, from
+// the app owner's Google Sheet (assets/pa-overtime.js reads it: a "Dates"
+// tab for every depot + one tab of run numbers per depot).
+//
+// Only PUBLISHED holidays show: Online = YES and before the pick date / time.
+// ?preview=1 shows the others too (marked), to check a list while typing it.
+//
+// Each run is drawn as the Paddles scorecard from the paddle of the schedule
+// worked that day (the Dates tab's Day; blank = SEPTA's calendar, PaHoliday).
+// The pick is the one in force on the holiday. Scheduled times only.
+// ==========================================================================
+import {
+  loadSeasons, seasonFor, loadManifest, loadPaddle, normalizeRun, loadPaddleLinks, dayLabel, fmtClock
+} from './assets/pa-schedule.js';
+import { modelFromRun, card, stack } from './assets/pa-run-card.js';
+
+const H = window.PaHoliday, OT = window.PaOvertime;
+const PREVIEW = OT.preview();
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const DOWL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const depotMatches = OT.depotMatches;
+let sheetSavedAt = 0, sheetStale = false;
+// The runs that show: published ones (all of them in preview).
+const visible = data => data.entries.filter(e => PREVIEW || OT.published(e.holiday));
+
+// ---- state ------------------------------------------------------------------------
+let seasons = [], curDistricts = [], hdata = { days: {}, ov: {} }, entries = [];
+// Route chips: the routes picked (none = all), remembered.
+const routeSel = new Set(lsGet('ot_routes').split(',').filter(Boolean));
+let showPast = false;
+let loadSeq = 0;
+let items = [];                        // [{ e, run, row, url, dayType, info }] for the depot
+const today = () => H.todayIso();
+
+/** Sign-up closes at the end of the "Pick Date by" day (or at its time). */
+const closesMs = e => OT.closesMs(e);
+const isClosed = e => { const c = closesMs(e); return (c != null && c < Date.now()) || e.iso < today(); };
+function leftText(e) {
+  const c = closesMs(e);
+  if (e.iso < today()) return { t: 'Past', cls: 'closed' };
+  if (c == null) return { t: 'No pick date', cls: '' };
+  if (c < Date.now()) return { t: 'Sign-up closed', cls: 'closed' };
+  const days = Math.round((H.dateOf(e.pickIso) - H.dateOf(today())) / 86400000);
+  if (days === 0) return { t: e.pickMin != null ? 'Closes today ' + fmtClock(e.pickMin) : 'Closes today', cls: 'soon' };
+  if (days === 1) return { t: 'Closes tomorrow', cls: 'soon' };
+  return { t: days + ' days left', cls: days <= 3 ? 'soon' : '' };
+}
+const shortDate = iso => { const d = H.dateOf(iso); return DOWL[d.getDay()] + ' ' + MON[d.getMonth()].charAt(0) + MON[d.getMonth()].slice(1).toLowerCase() + ' ' + d.getDate(); };
+const kindOf = info => info.alt && !info.changed ? 'alt' : info.day === 'sunday' ? 'sun' : info.day === 'saturday' ? 'sat' : 'wkd';
+function scheduleText(info) {
+  if (info.alt && !info.changed) return 'ALTERNATE ' + info.dayLabel.toUpperCase();
+  return info.day.toUpperCase() + ' SCHEDULE';
+}
+// The card's top line: "Sunday Schedule" / "Alternate Weekday Schedule".
+const stripText = info => (info.alt && !info.changed ? 'Alternate ' + info.dayLabel : info.dayLabel) + ' Schedule';
+
+// ---- build: the depot's runs for every date on the list ------------------------------
+async function build() {
+  const my = ++loadSeq;
+  const label = $('otDepot').value;
+  const mine = entries.filter(e => depotMatches(e.depot, label));
+  $('otList').innerHTML = mine.length ? '<div class="ot-msg">Loading ' + esc(label) + ' runs…</div>' : '';
+  // One group per date + schedule (the sheet's Day, else SEPTA's calendar).
+  const groups = [...new Set(mine.map(e => e.iso + '|' + e.day))];
+  const out = [];
+  await Promise.all(groups.map(async g => {
+    const [iso, sheetDay] = g.split('|');
+    const season = seasonFor(seasons, iso);
+    const districts = season ? await loadManifest(season).catch(() => []) : [];
+    const dist = districts.find(d => (d.label || d.name) === label) || districts.find(d => depotMatches(d.label || d.name, label));
+    const base = H.info(iso, null, hdata);
+    const dayType = sheetDay || base.day;             // 'sunday' | 'weekday' | 'saturday'
+    let rows = new Map(), links = new Map();
+    if (dist && (dist.days || []).includes(dayLabel(dayType))) {
+      [rows, links] = await Promise.all([
+        loadPaddle(dist.name, dayType, iso).catch(() => new Map()),
+        loadPaddleLinks(dist.name).catch(() => new Map())]);
+    }
+    // The depot's routes that day, so an alternate schedule counts only when it covers one.
+    const runs = [...rows.values()].map(r => normalizeRun(r, dayType)).filter(Boolean);
+    let info = H.info(iso, [...new Set(runs.flatMap(r => r.pieces.map(p => p.routeLabel)))], hdata);
+    // The sheet's Day wins. SEPTA's alternate-timetable warning stays only
+    // when it is about that same schedule.
+    if (sheetDay && sheetDay !== info.day) info = { ...info, day: sheetDay, dayLabel: dayLabel(sheetDay), changed: sheetDay !== info.plain, alt: false, altRoutes: [] };
+    else if (sheetDay) info = { ...info, changed: sheetDay !== info.plain };
+    mine.filter(e => e.iso === iso && e.day === sheetDay).forEach(e => {
+      const row = rows.get(e.runNo) || null;
+      const run = row ? normalizeRun(row, dayType) : null;
+      const link = links.get(dayLabel(dayType) + '-' + e.runNo);
+      const url = link ? ((window.innerWidth <= 768 ? link.moblink || link.pclink : link.pclink || link.moblink) || '') : '';
+      out.push({ e, run, row, url, dayType, info, dist, season });
+    });
+  }));
+  if (my !== loadSeq) return;
+  items = out;
+  render();
+}
+
+const routesOf = x => x.run ? [...new Set(x.run.pieces.flatMap(p => PaTags.labelRoutes(p.routeLabel).map(PaTags.shortRoute)))] : [];
+// The cards that can show (upcoming, unless past dates are open).
+const shownItems = () => items.filter(x => showPast || x.e.iso >= today());
+function fillRoutes() {
+  const rank = r => { const n = parseInt(r, 10); return isNaN(n) ? [1, 0, r] : [0, n, r]; };
+  const list = shownItems();
+  const routes = [...new Set(list.flatMap(routesOf))]
+    .sort((a, b) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || String(x[2]).localeCompare(String(y[2])); });
+  for (const r of [...routeSel]) if (!routes.includes(r)) routeSel.delete(r);
+  const box = $('otRoutes');
+  box.hidden = routes.length < 2;
+  box.innerHTML = (routeSel.size ? '<button type="button" class="fchip all" data-ot-route="">ALL ROUTES</button>' : '')
+    + routes.map(r => {
+      const n = list.filter(x => routesOf(x).includes(r)).length;
+      return '<button type="button" class="fchip' + (routeSel.has(r) ? ' active' : '') + '" data-ot-route="' + esc(r) + '" aria-pressed="' + routeSel.has(r) + '" title="Route ' + esc(r) + ': ' + n + ' run' + (n === 1 ? '' : 's') + '">'
+        + esc(r) + '<span class="cnt">' + n + '</span></button>';
+    }).join('');
+}
+
+// ---- filters + sort ------------------------------------------------------------------
+const swingMin = x => { const s = parseInt(x.row && x.row.swingdursec, 10); return x.run && x.run.swing && s > 0 ? s / 60 : 0; };
+function matches(x) {
+  if (routeSel.size && !routesOf(x).some(r => routeSel.has(r))) return false;
+  return true;
+}
+function sorter() {
+  const [k, dir] = $('otSort').value.split('-');
+  const sgn = dir === 'desc' ? -1 : 1;
+  const val = x => {
+    if (!x.run) return null;
+    if (k === 'start') return x.run.reportMin;
+    if (k === 'finish') return x.run.finishMin;
+    if (k === 'pay') return x.run.payHours;
+    if (k === 'swing') return swingMin(x);
+    return null;
+  };
+  return (a, b) => {
+    if (k !== 'run') {
+      const va = val(a), vb = val(b);
+      if (va == null && vb != null) return 1;             // runs not found last
+      if (vb == null && va != null) return -1;
+      if (va != null && vb != null && va !== vb) return (va - vb) * sgn;
+    }
+    return (+a.e.runNo) - (+b.e.runNo);
+  };
+}
+
+// ---- render -------------------------------------------------------------------------
+function dayHeader(iso, list) {
+  const i = list[0].info, d = H.dateOf(iso), k = kindOf(i), t = today();
+  const n = Math.round((d - H.dateOf(t)) / 86400000);
+  const when = n === 0 ? '<span class="ot-when now">TODAY</span>' : n === 1 ? '<span class="ot-when now">TOMORROW</span>'
+    : n > 1 ? '<span class="ot-when">IN ' + n + ' DAYS</span>' : '<span class="ot-when">PAST</span>';
+  let badges = '<span class="ot-badge ' + k + '">' + esc(scheduleText(i)) + '</span>';
+  if (i.alt && i.changed) badges += '<span class="ot-badge alt">' + esc(i.altRoutes.join(', ')) + ' ALTERNATE</span>';
+  if (i.alt) badges += '<span class="ot-badge alt">NO PADDLES</span>';
+  // Pick-by dates on this holiday (usually one).
+  const picks = [...new Set(list.map(x => x.e.pickIso + '|' + (x.e.pickMin == null ? '' : x.e.pickMin)))];
+  const pickLine = picks.map(p => {
+    const [pi, pm] = p.split('|'), e = list.find(x => x.e.pickIso + '|' + (x.e.pickMin == null ? '' : x.e.pickMin) === p).e, l = leftText(e);
+    return pi ? '<span>Sign up by <b>' + esc(shortDate(pi)) + (pm ? ' ' + esc(fmtClock(+pm)) : '') + '</b></span><span class="ot-left ' + l.cls + '">' + esc(l.t) + '</span>'
+      : '<span class="ot-left">No pick date given</span>';
+  }).join('');
+  const name = list[0].e.name || i.name || (i.changed ? i.dayLabel + ' schedule' : 'Overtime');
+  const unpub = PREVIEW && !OT.published(list[0].e.holiday)
+    ? '<div class="ot-warn"><b>Not published</b> (preview only): ' + (list[0].e.online ? 'the pick time has passed.' : 'Online is NO on the sheet.') + '</div>' : '';
+  let warn = '';
+  if (i.alt) warn = '<div class="ot-warn"><b>Alternate schedule, no paddles:</b> SEPTA runs '
+    + (i.changed ? 'a special timetable on ' + esc(i.altRoutes.join(', ')) : 'an alternate ' + esc(i.dayLabel) + ' timetable')
+    + '. The times below are from the regular ' + esc(i.dayLabel) + ' paddles and may not match.</div>';
+  else if (i.changed) warn = '<div class="ot-n">Worked on the <b>' + esc(i.dayLabel) + ' schedule</b>: these are the ' + esc(i.dayLabel) + ' paddles.</div>';
+  return '<div class="ot-dh ' + k + '" id="d-' + iso + '"><div class="ot-cal" aria-label="' + esc(shortDate(iso)) + '"><div class="dw">' + DOW[d.getDay()] + '</div><div class="dn">' + d.getDate() + '</div><div class="mo">' + MON[d.getMonth()] + '</div></div>'
+    + '<div class="ot-dh-body"><div class="ot-dh-top"><span class="ot-name">' + esc(name) + '</span>' + when + '</div>'
+    + '<div class="ot-badges">' + badges + '</div><div class="ot-pick">' + pickLine + '</div>' + warn + unpub + '</div></div>';
+}
+
+function runCard(x) {
+  const wrap = document.createElement('div');
+  const k = kindOf(x.info), l = leftText(x.e);
+  wrap.className = 'ot-card ' + k + (isClosed(x.e) ? ' closed' : '');
+  if (!x.run) {
+    const depot = x.dist ? (x.dist.label || x.dist.name) : $('otDepot').value;
+    wrap.innerHTML = '<div class="ot-miss">' + PaTags.runTag(x.e.runNo, dayLabel(x.dayType), '') + '<div style="margin-top:6px">Run <b>' + esc(x.e.runNo)
+      + '</b> is not on the <b>' + esc(dayLabel(x.dayType)) + '</b> paddles at ' + esc(depot) + (x.season ? ' (' + esc(x.season.label) + ' pick)' : '') + '.'
+      + (x.e.depot ? '' : ' Check the depot.') + '</div></div>';
+    return wrap;
+  }
+  const top = document.createElement('div');
+  top.className = 'ot-strip';
+  // One line: "Sunday Schedule on Fri Nov 20" (the sign-up date is in the day header).
+  top.innerHTML = '<span class="ot-s-date">' + esc(stripText(x.info) + ' on ' + shortDate(x.e.iso)) + '</span>';
+  const c = card(modelFromRun(x.run), { paddleUrl: x.url });
+  wrap.appendChild(stack(top, c, x.run.dayType));
+  return wrap;
+}
+
+function render() {
+  fillRoutes();
+  const t = today(), label = $('otDepot').value;
+  const note = (PREVIEW ? '<div class="ot-note"><b>PREVIEW:</b> unpublished holidays show too. Workers only see a holiday while Online is YES and the pick time has not passed.</div>' : '') + (sheetStale ? '<div class="ot-note">No connection: showing the list saved ' + esc(new Date(sheetSavedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '.</div>' : '');
+  $('otNote').innerHTML = note;
+  const box = $('otList');
+  if (!entries.length) {
+    box.innerHTML = '<div class="ot-msg"><b>No holiday overtime open right now.</b><br>When the runs for a holiday are posted, they show up here until the pick date.</div>';
+    $('otCount').textContent = ''; return;
+  }
+  const base = items.filter(x => showPast || x.e.iso >= t);
+  const list = base.filter(matches);
+  $('otCount').textContent = list.length + (list.length === 1 ? ' run' : ' runs');
+  const past = items.filter(x => x.e.iso < t).length;
+  const pastBtn = past && !showPast ? '<button type="button" class="ot-past" id="otPastBtn">Show past dates (' + past + ' runs)</button>' : '';
+  if (!items.length) {
+    box.innerHTML = '<div class="ot-msg"><b>No overtime runs posted for ' + esc(label) + '.</b><br>Pick another depot above.</div>';
+    return;
+  }
+  if (!list.length) {
+    let why = 'No runs match your filters.';
+    if (!base.length) why = 'No upcoming holiday overtime for ' + esc(label) + '.';
+    box.innerHTML = '<div class="ot-msg">' + why + '</div>' + pastBtn;
+    return;
+  }
+  box.innerHTML = '';
+  const byDate = new Map();
+  list.forEach(x => { if (!byDate.has(x.e.iso)) byDate.set(x.e.iso, []); byDate.get(x.e.iso).push(x); });
+  [...byDate.keys()].sort().forEach(iso => {
+    const group = byDate.get(iso).sort(sorter());
+    const sec = document.createElement('section');
+    sec.className = 'ot-day';
+    sec.innerHTML = dayHeader(iso, items.filter(x => x.e.iso === iso));
+    const grid = document.createElement('div');
+    grid.className = 'ot-grid at-list pa-sc';
+    group.forEach(x => grid.appendChild(runCard(x)));
+    sec.appendChild(grid);
+    box.appendChild(sec);
+  });
+  if (pastBtn) box.insertAdjacentHTML('beforeend', pastBtn);
+  PaTags.resolveBlockTags(box);
+}
+
+// ---- controls ---------------------------------------------------------------------------
+$('otList').addEventListener('click', e => { if (e.target.id === 'otPastBtn') { showPast = true; render(); } });
+$('otRoutes').addEventListener('click', e => {
+  const b = e.target.closest('[data-ot-route]');
+  if (!b) return;
+  const r = b.dataset.otRoute;
+  if (!r) routeSel.clear();
+  else if (routeSel.has(r)) routeSel.delete(r); else routeSel.add(r);
+  lsSet('ot_routes', [...routeSel].join(','));
+  render();
+});
+$('otSort').addEventListener('change', () => { lsSet('ot_sort', $('otSort').value); render(); });
+// The depot is app-wide: bt_depot (label), like Paddles / Live / Pull Outs.
+$('otDepot').addEventListener('change', () => { lsSet('bt_depot', $('otDepot').value); build(); });
+window.addEventListener('storage', e => {
+  if (e.key !== 'bt_depot' || !e.newValue || e.newValue === $('otDepot').value) return;
+  if ([...$('otDepot').options].some(o => o.value === e.newValue)) { $('otDepot').value = e.newValue; build(); }
+});
+
+// A new list on the sheet: every 5 minutes while open, and on coming back to the page.
+let lastText = '';
+async function refresh() {
+  try {
+    const data = await OT.load({ force: true }), text = data.raw;
+    sheetStale = data.stale; sheetSavedAt = data.savedAt;
+    const vis = visible(data);
+    if (text === lastText && vis.length === entries.length) { render(); return; }
+    lastText = text;
+    entries = vis;
+    fillDepots();
+    await build();
+  } catch (_) {}
+}
+setInterval(refresh, 5 * 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+// "3 days left" / closed: once a minute.
+setInterval(() => {
+  if (!items.length) return;
+  if (!PREVIEW && items.some(x => !OT.published(x.e.holiday))) refresh(); else render();
+}, 60000);
+
+// Depot dropdown: every depot of the pick; the ones with upcoming overtime say how many runs.
+function fillDepots() {
+  const sel = $('otDepot'), cur = sel.value, t = today();
+  sel.innerHTML = curDistricts.map(d => {
+    const label = d.label || d.name;
+    const n = entries.filter(e => e.iso >= t && depotMatches(e.depot, label)).length;
+    return '<option value="' + esc(label) + '">' + esc(label) + (n ? ' · ' + n + (n === 1 ? ' run' : ' runs') : '') + '</option>';
+  }).join('');
+  if (cur && curDistricts.some(d => (d.label || d.name) === cur)) sel.value = cur;
+}
+
+(async function init() {
+  const s = lsGet('ot_sort');
+  if (s && [...$('otSort').options].some(o => o.value === s)) $('otSort').value = s;
+  try {
+    let data;
+    [seasons, hdata, data] = await Promise.all([loadSeasons(), H.load(), OT.load()]);
+    lastText = data.raw; sheetStale = data.stale; sheetSavedAt = data.savedAt;
+    entries = visible(data);
+    // Depots of today's pick (the list's dates use their own pick's paddles).
+    const season = seasonFor(seasons, today());
+    curDistricts = season ? await loadManifest(season) : [];
+    fillDepots();
+    const saved = lsGet('bt_depot');
+    if (curDistricts.some(d => (d.label || d.name) === saved)) $('otDepot').value = saved;
+    await build();
+    if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }
+  } catch (e) {
+    $('otList').innerHTML = '<div class="ot-msg">Could not load the overtime list. Check your connection and try again.</div>';
+  }
+})();
+</script>
+<script type="module" src="assets/pa-account-ui.js"></script>
+</body>
+</html>

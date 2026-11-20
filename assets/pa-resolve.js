@@ -1,0 +1,524 @@
+// ==========================================================================
+// Paddle App — the schedule rules, with nothing around them.
+//
+// Split out of pa-assignments.js so that BOTH sides can run the same code:
+// the browser (through pa-assignments, which re-exports every name here) and
+// the email sender in functions/, which has to work out what an operator is
+// doing today without a copy of these rules drifting from the app's.
+//
+// Everything in this file is pure: no Firebase, no DOM, no clock of its own
+// beyond the `today` a caller passes in. Durations are integer MINUTES.
+// The vectors in assets/tests/resolver-cases.json pin every rule here.
+// ==========================================================================
+
+import { dayTypeFor, isHoliday, dowOf, daysBetween, addDays, todayIso, fmtClock } from './pa-schedule.js';
+
+// Holiday pay, per the operator rule: 8 hours for a holiday not worked;
+// a holiday premium adds 12 PAID hours on top of the run's pay; a worked
+// holiday adds 8. Neither adds worked hours: the run's own time is the work.
+// (Stored kind 'holiday-worked' is the holiday premium, kept for old days.)
+export const HOLIDAY_PAY_MIN = 480;
+export const HOLIDAY_WORKED_PAY_MIN = 720;
+export const WORKED_HOLIDAY_PAY_MIN = 480;
+
+// Overtime day: the run plus 4 PAID hours. The 4 hours are not worked time.
+export const OVERTIME_PAY_MIN = 240;
+
+// Late allowance: minutes held late are paid at time and a half, on top of
+// the day's worked hours (30 min late adds 45 min = 0.75 h).
+export const LATE_ALLOWANCE_RATE = 1.5;
+
+// A vacation week pays 44 hours. It is a WEEK figure, not a day one: it does
+// not depend on how many days the operator would have worked that week, so it
+// is added once per vacation week in weekTotals and never split across days.
+export const VACATION_WEEK_PAY_MIN = 2640;
+/** Doc id in users/{uid}/vacations that holds the yearly allowance, not a week. */
+export const VACATION_ALLOWANCE_ID = 'allowance';
+
+export const EXTRA_KINDS = { ot: 'Overtime', holiday: 'Holiday', late: 'Late allowance', other: 'Other' };
+
+/** Labels for the day kinds the edit sheet writes (assignment.kind). The ids
+ *  are stored, so they never change: 'holiday-worked' is shown as Holiday
+ *  premium, 'paid-off' as Earned paid off day, 'unpaid-off' as Earned excused
+ *  off. The last three are no longer offered; they stay so old days still read. */
+export const KIND_LABELS = {
+  'normal': 'Worked', 'late': 'Late allowance', 'overtime': 'Overtime',
+  'holiday-off': 'Holiday', 'holiday-worked': 'Holiday premium', 'worked-holiday': 'Worked holiday',
+  'personal-holiday': 'Personal holiday',
+  'paid-off': 'Earned paid off day', 'unpaid-off': 'Earned excused off', 'vacation': 'Vacation',
+  'called-out': 'Called out', 'sick': 'Sick', 'unpaid-excused': 'Unpaid excused'
+};
+export const STATUSES = ['scheduled', 'off', 'sick', 'vacation', 'holiday'];
+
+// Work-day presets. Day indexes are 0 = Sunday .. 6 = Saturday.
+export const PRESETS = {
+  '5-day': { label: '5-day',  days: [1, 2, 3, 4, 5] },
+  '4+1':   { label: '4 + 1',  days: [1, 2, 3, 4, 6] },
+  '3+2':   { label: '3 + 2',  days: [0, 1, 2, 3, 6] }
+};
+
+
+/**
+ * Pure: what saving a window [from, to] does to the existing versions.
+ * Neighbouring windows are left alone; only overlap is resolved:
+ *   - a version that starts before `from` is closed the day before it
+ *   - a version that starts inside the window and ends after it is moved to
+ *     start the day after `to`
+ *   - a version wholly inside the window is removed
+ * `to` null means open-ended, which supersedes everything at/after `from`.
+ */
+export function windowOps(existing, from, to) {
+  const hi = to || '9999-12-31';
+  const ops = [];
+  for (const ex of existing) {
+    const exFrom = ex.effectiveFrom, exTo = ex.effectiveTo || '9999-12-31';
+    if (exFrom > hi || exTo < from) continue;                       // no overlap
+    if (exFrom < from) { ops.push({ op: 'update', id: ex.id, effectiveTo: addDays(from, -1) }); continue; }
+    if (to && exTo > hi) { ops.push({ op: 'update', id: ex.id, effectiveFrom: addDays(to, 1) }); continue; }
+    ops.push({ op: 'delete', id: ex.id });
+  }
+  return ops;
+}
+
+// ---- short runs -----------------------------------------------------------
+// Some districts let an operator add ONE short run on top of a day's regular
+// run (data/district-settings.json, allowsShortRuns, off unless a district
+// turns it on). A run is short when the paddle's pay hours are below the
+// district's shortRunMaxPayHours (4 unless set). A day is then either one
+// regular run, or one regular run plus one short run - never a short run
+// alone and never two short runs. Districts without the setting keep the
+// one-run-per-day rule. The short run is stored on the day itself
+// (assignments/{date}.shortRun = { runNo, runDayType }); hours come from the
+// paddle like every other run's.
+
+export const SHORT_RUN_MAX_PAY_HOURS = 4;
+
+/** The short-run rules for a depot. `settings` is district-settings.json
+ *  (or null); the key tolerates "callowhill" vs "callowhillb". */
+export function shortRunRules(settings, depotKey) {
+  const def = (settings && settings.defaults) || {};
+  const all = (settings && settings.districts) || {};
+  const k = String(depotKey || '').replace(/-(summer|fall|spring|winter)-?\d{4}$/i, '');
+  const own = [k, k.replace(/b$/, ''), k + 'b'].map(c => all[c]).find(Boolean) || {};
+  const pick = (name, fallback) => own[name] != null ? own[name] : def[name] != null ? def[name] : fallback;
+  const max = +pick('shortRunMaxPayHours', SHORT_RUN_MAX_PAY_HOURS);
+  return {
+    allowsShortRuns: pick('allowsShortRuns', false) === true,
+    shortRunMaxPayHours: Number.isFinite(max) && max > 0 ? max : SHORT_RUN_MAX_PAY_HOURS
+  };
+}
+
+/** Short = paddle pay hours known and below the limit. Unknown pay is not short. */
+export function isShortPay(payHours, rules) {
+  const p = +payHours, max = (rules && rules.shortRunMaxPayHours) || SHORT_RUN_MAX_PAY_HOURS;
+  return Number.isFinite(p) && p > 0 && p < max;
+}
+
+const hrs = h => (+h).toFixed(2).replace(/\.?0+$/, '');
+
+/**
+ * When a run keeps the driver busy, as [from, to] minutes of its schedule
+ * day: each piece, the first from the report time and the last to the
+ * finish. A swing break between pieces is free time.
+ */
+export function busyIntervals(run) {
+  if (!run) return [];
+  const ps = (run.pieces || []).filter(p => p.startMin != null && p.endMin != null);
+  if (!ps.length) return run.reportMin != null && run.finishMin != null ? [[run.reportMin, run.finishMin]] : [];
+  return ps.map((p, i) => [
+    i === 0 && run.reportMin != null ? Math.min(run.reportMin, p.startMin) : p.startMin,
+    i === ps.length - 1 && run.finishMin != null ? Math.max(run.finishMin, p.endMin) : p.endMin
+  ]);
+}
+
+/** Do two runs keep the driver busy at the same time? Touching ends are fine. */
+export function runsOverlap(a, b) {
+  const A = busyIntervals(a), B = busyIntervals(b);
+  return A.some(([s1, e1]) => B.some(([s2, e2]) => s1 < e2 && s2 < e1));
+}
+const span = r => fmtClock(r.reportMin) + ' – ' + fmtClock(r.finishMin);
+
+/**
+ * Is this day's combination of runs allowed? Returns '' when it is, else
+ * the reason in the operator's words.
+ *   day   = { runNo, payHours, run?, dayType?, shortRun: null | { runNo, payHours, run?, runDayType? } }
+ *           payHours = the paddle's pay for that run, null when the paddle
+ *           does not know the run. runNo null = no run (a day off).
+ *           run = the paddle run (times): with both, the two may not overlap.
+ *           dayType = the day's schedule: a short run goes only on its own
+ *           kind of day (weekday short runs on weekdays, Saturday ones on
+ *           Saturdays, Sunday ones on Sundays).
+ *   rules = shortRunRules(...)
+ */
+export function checkDayRuns(day, rules) {
+  const d = day || {}, sr = d.shortRun && d.shortRun.runNo ? d.shortRun : null;
+  const max = hrs((rules && rules.shortRunMaxPayHours) || SHORT_RUN_MAX_PAY_HOURS);
+  if (!rules || !rules.allowsShortRuns) {
+    return sr ? 'Your district allows one run per day. Remove the second run.' : '';
+  }
+  const mainShort = d.runNo && isShortPay(d.payHours, rules);
+  if (!sr) {
+    return mainShort
+      ? 'Run ' + d.runNo + ' pays ' + hrs(d.payHours) + ' h, a short run (under ' + max + ' h). A short run can’t be the only run of the day: add it as the second run next to a regular run.'
+      : '';
+  }
+  if (!d.runNo) return 'A short run can’t be the only run of the day. Enter the regular run first.';
+  if (String(sr.runNo) === String(d.runNo)) return 'The second run must be a different run from run ' + d.runNo + '.';
+  if (d.dayType && sr.runDayType && sr.runDayType !== d.dayType) {
+    const nm = t => (t === 'weekday' ? 'weekday' : t.charAt(0).toUpperCase() + t.slice(1));
+    return 'Short run ' + sr.runNo + ' is a ' + nm(sr.runDayType) + ' run: it only goes on a ' + nm(sr.runDayType) + ' (this day runs the ' + nm(d.dayType) + ' schedule).';
+  }
+  if (d.payHours == null || !(+d.payHours > 0)) return 'Run ' + d.runNo + ' is not in the paddle, so it can’t be checked as a regular run. A short run can only be added next to a regular run from the paddle.';
+  if (sr.payHours == null || !(+sr.payHours > 0)) return 'Run ' + sr.runNo + ' is not in the paddle, so it can’t be checked as a short run.';
+  if (mainShort) {
+    return isShortPay(sr.payHours, rules)
+      ? 'Two short runs on the same day are not allowed. The first run must be a regular run (' + max + ' h or more).'
+      : 'Run ' + d.runNo + ' is the short run (' + hrs(d.payHours) + ' h). Enter the regular run first and add the short run as the second run.';
+  }
+  if (!isShortPay(sr.payHours, rules)) return 'Run ' + sr.runNo + ' pays ' + hrs(sr.payHours) + ' h. Only one regular run per day: the second run must be a short run (under ' + max + ' h).';
+  // The driver can't be on two runs at once. Checked when both runs' times
+  // are known (day.run / shortRun.run = paddle runs).
+  if (d.run && sr.run && runsOverlap(d.run, sr.run)) {
+    return 'Short run ' + sr.runNo + ' (' + span(sr.run) + ') overlaps run ' + d.runNo + ' (' + span(d.run) + '). You can’t be on two runs at once: choose a short run outside your run’s times.';
+  }
+  return '';
+}
+
+export function activePattern(patterns, date) {
+  return patterns
+    .filter(p => p.effectiveFrom <= date && (!p.effectiveTo || date <= p.effectiveTo))
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] || null;
+}
+
+
+/** The Sunday that starts the vacation week `date` falls in, else null. */
+export function vacationWeekOf(st, date) {
+  const ws = addDays(date, -dowOf(date));
+  return st && st.vacations && st.vacations.has(ws) ? ws : null;
+}
+
+// ---- extras ---------------------------------------------------------------
+
+/**
+ * A day's extras as [{kind, min, note}]. Reads the current `extras` array,
+ * and synthesises one from the schema-1 fields (boolean `flags.overtime`,
+ * `holiday{}`) so nothing written before this version needs migrating.
+ */
+export function normalizeExtras(a) {
+  if (!a) return [];
+  let out;
+  if (Array.isArray(a.extras)) {
+    out = a.extras
+      .filter(x => x && Number.isFinite(+x.min))
+      .map(x => ({ kind: EXTRA_KINDS[x.kind] ? x.kind : 'other', min: Math.round(+x.min), note: x.note || '' }));
+  } else {
+    out = [];
+    if (a.holiday && a.holiday.isHoliday) {
+      out.push({ kind: 'holiday', min: Math.round((a.holiday.payHours != null ? a.holiday.payHours : 8) * 60), note: '' });
+      if (a.holiday.worked) {
+        out.push({ kind: 'holiday', min: Math.round((a.holiday.workedBonusHours != null ? a.holiday.workedBonusHours : 4) * 60), note: 'worked' });
+      }
+    }
+    if (a.flags && a.flags.overtime) out.push({ kind: 'ot', min: 0, note: 'amount not recorded' });
+  }
+  // The day's kind decides the holiday amount, so a day saved under an older
+  // rule (holiday worked = 8 h) reads with the current one.
+  const hol = HOLIDAY_KIND_MIN[a.kind];
+  if (hol != null) {
+    out = out.filter(x => x.kind !== 'holiday');
+    out.unshift({ kind: 'holiday', min: hol, note: '' });
+  }
+  // An overtime day's extra is its paid 4 hours, whatever was stored.
+  if (a.kind === 'overtime') {
+    out = out.filter(x => x.kind !== 'ot');
+    out.push({ kind: 'ot', min: OVERTIME_PAY_MIN, note: 'paid' });
+  }
+  return out;
+}
+
+const HOLIDAY_KIND_MIN = { 'holiday-off': HOLIDAY_PAY_MIN, 'holiday-worked': HOLIDAY_WORKED_PAY_MIN, 'worked-holiday': WORKED_HOLIDAY_PAY_MIN };
+
+/** Pay minutes one extra adds. A late allowance is stored as the minutes held
+ *  late and paid at LATE_ALLOWANCE_RATE; every other extra is paid as stored.
+ *  Stored values are whole minutes, but a late allowance can pay a half
+ *  minute (45 min -> 67.5); it is NOT rounded, so weekly totals stay exact. */
+export function extraPayMin(x) {
+  if (!x) return 0;
+  if (x.kind === 'late') return Math.abs(+x.min || 0) * LATE_ALLOWANCE_RATE;
+  return Math.round(+x.min || 0);
+}
+
+export const extrasMin = extras => (extras || []).reduce((s, x) => s + extraPayMin(x), 0);
+
+/**
+ * Slate report time: minutes between reporting and the run's scheduled
+ * start, paid on top of the day. Reporting at 10:00 AM for an 11:00 AM start
+ * adds 60. Wraps midnight (11:45 PM for a 12:29 AM start adds 44). A report
+ * time at or after the start adds nothing.
+ */
+export function earlyReportMin(reportMin, startMin) {
+  if (reportMin == null || startMin == null) return 0;
+  const d = (((startMin - reportMin) % 1440) + 1440) % 1440;
+  return d > 0 && d <= 720 ? d : 0;
+}
+/**
+ * Slate report pay: from the report time to the run's start, but it stops at
+ * `assignedMin` when one is given (the time dispatch gave the operator the
+ * run). Report 9:00, assigned 10:00, run starts 12:00 pays 1 h, not 3.
+ * Times are minutes of the day; wraps midnight like earlyReportMin.
+ */
+export function reportPayMin(reportMin, startMin, assignedMin) {
+  const full = earlyReportMin(reportMin, startMin);
+  if (!full || assignedMin == null) return full;
+  const toAssigned = (((assignedMin - reportMin) % 1440) + 1440) % 1440;
+  return Math.min(full, toAssigned);
+}
+/**
+ * The minutes typed in the "held late" window. 0 or nothing REMOVES the
+ * late minutes, and a Late allowance day without minutes is a normal day.
+ * Returns { kind, lateMin } (lateMin null when removed).
+ */
+export function lateAfterEdit(kind, typed) {
+  const t = typed == null ? '' : String(typed).trim();
+  const min = t === '' ? 0 : parseInt(t, 10);
+  if (!(min > 0)) return { kind: kind === 'late' ? 'normal' : kind, lateMin: null };
+  return { kind, lateMin: min };
+}
+export const hasExtra = (r, kind) => !!(r && r.extras && r.extras.some(x => x.kind === kind));
+
+// ---- resolver -------------------------------------------------------------
+
+function fromPattern(patterns, date, base) {
+  const p = activePattern(patterns, date);
+  if (!p) return { ...base, source: null, off: true, unregistered: true, status: 'off', runNo: null,
+                   flags: {}, holiday: null, extras: [], reportMin: null, payMin: null };
+  const period = p.periodDays || 7;
+  const idx = period === 7
+    ? dowOf(date)
+    : ((daysBetween(p.anchor || p.effectiveFrom, date) % period) + period) % period;
+  const slot = p.days ? p.days[String(idx)] : null;
+  const out = { ...base, source: 'pattern', patternId: p.id, depotKey: p.depotKey || null,
+                flags: {}, holiday: null, extras: [], status: 'scheduled', off: false,
+                reportMin: null, payMin: null, runNo: null, shortRun: null };
+
+  // Holiday rule (from the operator): a holiday runs the Sunday schedule. Off
+  // with holiday pay unless you hold a Sunday run, in which case you work it
+  // and earn the run plus the holiday plus the worked bonus. A holdowner /
+  // slate day with an explicit run keeps that run but is flagged.
+  if (base.holidayDate) {
+    // A Regular driver's pick stores one run per day too, but the holiday
+    // rule for them is "Sunday schedule" — only a dispatch-assigned week
+    // (holdowner / slate) keeps its explicit run on a holiday.
+    const isPick = p.preset === 'pick' || !!PRESETS[p.preset];
+    if (!isPick && slot && slot.runNo) {
+      return { ...out, runNo: String(slot.runNo), holiday: { isHoliday: true, worked: true },
+               extras: [{ kind: 'holiday', min: HOLIDAY_WORKED_PAY_MIN, note: '' }],
+               holidayNote: 'Holiday: Sunday schedule. Confirm this run operates.' };
+    }
+    const sunRun = p.runByDayType && p.runByDayType.sunday;
+    if (slot && sunRun) {
+      return { ...out, runNo: String(sunRun), dayType: 'sunday', holiday: { isHoliday: true, worked: true },
+               extras: [{ kind: 'holiday', min: HOLIDAY_WORKED_PAY_MIN, note: '' }] };
+    }
+    return { ...out, off: true, status: 'holiday', holiday: { isHoliday: true, worked: false },
+             extras: [{ kind: 'holiday', min: HOLIDAY_PAY_MIN, note: '' }] };
+  }
+
+  if (!slot) return { ...out, off: true, status: 'off' };
+  const runNo = slot.runNo || (p.runByDayType && p.runByDayType[base.dayType]) || null;
+  if (!runNo) return { ...out, off: true, status: 'off', reason: 'no-run-for-daytype' };
+  // The pick's short run (districts with allowsShortRuns) rides on the
+  // weekday slots, and only on a day that runs that schedule.
+  const sr = slot.shortRun && slot.shortRun.runNo ? slot.shortRun : null;
+  const shortRun = sr && (sr.runDayType || 'weekday') === base.dayType
+    ? { runNo: String(sr.runNo), runDayType: sr.runDayType || 'weekday' } : null;
+  return { ...out, runNo: String(runNo), shortRun };
+}
+
+/**
+ * What is this operator doing on `date`?
+ *
+ * `off` true means no run. `source` is 'assignment' (explicit day),
+ * 'pattern' (computed), or null (nothing registered). `patternRunNo` says
+ * what the pattern alone would have given, so an explicit day can be shown
+ * as an override / extra shift.
+ */
+export function resolvePure(st, date, overrides) {
+  const base = { date, dayType: dayTypeFor(date, overrides), holidayDate: isHoliday(date, overrides) };
+  const pat = fromPattern(st.patterns, date, base);
+  const a = st.assignments.get(date);
+  // A vacation week outranks the pattern — the pick still says "run 209 on a
+  // Tuesday", but the operator is away — while an explicit day still outranks
+  // the vacation, so a day worked during vacation reads as worked.
+  const vacationWeek = vacationWeekOf(st, date);
+  if (!a) {
+    if (!vacationWeek) return pat;
+    return { ...base, source: 'vacation', vacationWeek, off: true, status: 'vacation', kind: 'vacation',
+             runNo: null, flags: {}, holiday: null, extras: [], reportMin: null, payMin: null,
+             unregistered: false, patternRunNo: pat.runNo || null, patternOff: !!pat.off };
+  }
+
+  const status = a.status || (a.runNo ? 'scheduled' : 'off');
+  const working = status === 'scheduled' && !!a.runNo;
+  return {
+    ...base,
+    vacationWeek,
+    source: 'assignment',
+    assignment: a,
+    runNo: a.runNo ? String(a.runNo) : null,
+    runDayType: a.runDayType || null,           // paddle the swapped-in run belongs to
+    // The additional short run (districts with allowsShortRuns). Only a
+    // working day with a run of its own carries one.
+    // A day saved before short runs existed (no shortRun field) keeps the
+    // pick's short run while it still works the pick's run.
+    shortRun: !working ? null
+      : a.shortRun && a.shortRun.runNo ? { runNo: String(a.shortRun.runNo), runDayType: a.shortRun.runDayType || a.runDayType || null }
+      : !('shortRun' in a) && pat.shortRun && String(a.runNo) === String(pat.runNo) ? pat.shortRun : null,
+    kind: a.kind || null,
+    depotKey: a.depotKey || pat.depotKey || null,
+    dayType: a.dayType || base.dayType,
+    reportMin: a.reportMin != null ? a.reportMin : null,
+    assignedMin: a.assignedMin != null ? a.assignedMin : null,   // Slate: when dispatch gave the run
+    payMin: a.payMin != null ? a.payMin : null,
+    // The day's pay typed by hand (any kind): replaces the worked-out pay,
+    // never the time worked.
+    payOverrideMin: a.payOverrideMin != null && Number.isFinite(+a.payOverrideMin) ? Math.round(+a.payOverrideMin) : null,
+    status,
+    off: !working,
+    flags: a.flags || {},
+    holiday: (status === 'holiday' || (a.holiday && a.holiday.isHoliday))
+      ? { isHoliday: true, worked: working } : null,
+    extras: normalizeExtras(a),
+    note: a.note || '',
+    patternRunNo: pat.runNo || null,
+    patternOff: !!pat.off,
+    extraShift: working && !pat.runNo
+  };
+}
+
+// ---- hours (derived, never stored) ---------------------------------------
+
+/** Pay minutes for the resolved run: paddle pay hours, else the day's manual payMin. */
+export function runMinutes(run, resolved) {
+  if (run && run.payHours) return Math.round(run.payHours * 60);
+  if (resolved && resolved.payMin != null) return Math.round(resolved.payMin);
+  return 0;
+}
+
+/**
+ * The one formula. Scheduled = the run's hours when the day is a working
+ * day; actual = scheduled + extras, but only once the day has arrived.
+ * `flagged` marks anything that is not a plain pattern working day.
+ */
+export function dayHours(resolved, run, today) {
+  const r = resolved, t = today || todayIso();
+  // Scheduled = the paddle's hours for the run. Worked = the same unless the
+  // operator typed a different amount (payMin), e.g. a short day or a run
+  // the paddle does not know.
+  const paddleMin = run && run.payHours ? Math.round(run.payHours * 60) : 0;
+  const working = !r.off && r.status === 'scheduled' && !!r.runNo;
+  // The additional short run: runFor() hangs its paddle run on run.shortRun.
+  // Its paddle pay and its own start-to-finish are added to the day.
+  const sr = working && r.shortRun && run && run.shortRun ? run.shortRun : null;
+  const shortMin = sr && sr.payHours ? Math.round(sr.payHours * 60) : 0;
+  const workedMin = (r.payMin != null ? Math.round(r.payMin) : paddleMin) + shortMin;
+  const runMin = paddleMin || (r.payMin != null ? Math.round(r.payMin) : 0);
+  const scheduledMin = working ? runMin + shortMin : 0;
+  // The run's scheduled start is the paddle's; runFor() keeps it as
+  // paddleStartMin when the day's report time replaces run.reportMin.
+  const startMin = !run ? null
+    : run.paddleStartMin != null ? run.paddleStartMin
+    : (run.overridden || run.synthetic) ? null : run.reportMin;
+  // Report pay ends when dispatch gave the run (assignedMin), if typed.
+  const early = working ? reportPayMin(r.reportMin, startMin, r.assignedMin) : 0;
+  const ex = extrasMin(r.extras) + early;
+  const past = r.date <= t;
+  const changedFromPattern = r.source === 'assignment' &&
+    (r.extraShift || (!working && !!r.patternRunNo) || (working && r.patternRunNo && r.runNo !== r.patternRunNo));
+  // REAL work time, not pay: the run's finish minus its start (the report
+  // time when one was typed, so an early report is in it). Pay includes
+  // extras the operator does not work. A typed pay that differs from the
+  // paddle (a short day) moves the work by the same amount; late allowance
+  // and overtime add the minutes actually worked. A run the paddle does not
+  // know falls back to the typed hours.
+  let workRunMin = 0;
+  if (working) {
+    const st0 = run ? run.reportMin : null, fin = run ? run.finishMin : null;
+    if (st0 != null && fin != null && fin > st0) workRunMin = fin - st0 + (r.payMin != null && paddleMin ? Math.round(r.payMin) - paddleMin : 0);
+    else workRunMin = workedMin - shortMin;
+    if (sr) workRunMin += sr.reportMin != null && sr.finishMin != null && sr.finishMin > sr.reportMin ? sr.finishMin - sr.reportMin : shortMin;
+    for (const x of r.extras || []) {
+      if (x.kind === 'late') workRunMin += Math.abs(+x.min || 0);
+      // An overtime DAY's 4 hours are paid, not worked.
+      else if (x.kind === 'ot' && r.kind !== 'overtime') workRunMin += Math.round(+x.min || 0);
+    }
+    if (workRunMin < 0) workRunMin = 0;
+  }
+  // A pay typed by hand replaces the worked-out pay (not the time worked).
+  const override = r.payOverrideMin != null ? r.payOverrideMin : null;
+  const payDay = override != null ? override : (working ? workedMin : 0) + ex;
+  // Route time: every piece from its pull-out / relief to its pull-in /
+  // relief, the regular run's and the short run's. 0 when the paddle does
+  // not know the run.
+  const pieceMin = x => (x && x.pieces ? x.pieces.reduce((s, p) => s + (p.endMin != null && p.startMin != null && p.endMin > p.startMin ? p.endMin - p.startMin : 0), 0) : 0);
+  const routeMin = working ? pieceMin(run) + pieceMin(sr) : 0;
+  return {
+    runMin, shortRunMin: working ? shortMin : 0, routeMin,
+    scheduledMin, extrasMin: ex, workedMin: working ? workedMin : 0, earlyReportMin: early,
+    actualMin: past ? payDay : null,
+    // actualMin is what the day PAYS (kept under its old name for Weekly
+    // Hours); paidMin says so, workMin is the real time worked.
+    paidMin: past ? payDay : null,
+    payOverridden: override != null,
+    workMin: past ? workRunMin : null,
+    working, past,
+    flagged: ex > 0 || override != null || (r.extras && r.extras.length > 0) || (!r.unregistered && !['scheduled', 'off'].includes(r.status)) || !!changedFromPattern,
+    unknownRun: working && !run && r.payMin == null
+  };
+}
+
+/**
+ * Week totals for the days of one week. Vacation is a WEEK figure: each
+ * vacation week these days belong to adds VACATION_WEEK_PAY_MIN once, on top
+ * of anything actually worked, and counts as actual from the Sunday it
+ * starts — the operator is paid for the week, not per day of it.
+ */
+export function weekTotals(days, today) {
+  const t = today || todayIso();
+  let scheduledMin = 0, actualMin = 0, daysWorked = 0, workMin = 0, routeMin = 0;
+  const vacWeeks = new Set();
+  for (const d of days) {
+    scheduledMin += d.hours.scheduledMin;
+    routeMin += d.hours.routeMin || 0;
+    if (d.r && d.r.vacationWeek) vacWeeks.add(d.r.vacationWeek);
+    if (d.hours.past) {
+      actualMin += d.hours.actualMin || 0;
+      workMin += d.hours.workMin || 0;
+      if (d.hours.working) daysWorked++;
+    }
+  }
+  let vacationMin = 0;
+  for (const w of vacWeeks) {
+    scheduledMin += VACATION_WEEK_PAY_MIN;
+    vacationMin += VACATION_WEEK_PAY_MIN;
+    if (w <= t) actualMin += VACATION_WEEK_PAY_MIN;
+  }
+  // paidMin = actualMin (pay, with vacation's 44 h); workMin = real time
+  // worked, which a vacation week adds nothing to.
+  // routeMin = scheduled route time (pull-out to pull-in of every piece).
+  return { scheduledMin, actualMin, paidMin: actualMin, workMin, routeMin, daysWorked, vacationMin, vacationWeeks: vacWeeks.size };
+}
+
+export const fmtHours = min => ((+min || 0) / 60).toFixed(2);
+
+/** Pay summary for one day: [[label, hours], ...] and a total. */
+export function payHoursFor(resolved, run) {
+  const h = dayHours(resolved, run, '9999-12-31');
+  const parts = [];
+  if (h.working) parts.push(['Worked', (h.workedMin - h.shortRunMin) / 60]);
+  if (h.shortRunMin) parts.push(['Short run', h.shortRunMin / 60]);
+  (resolved.extras || []).forEach(x => parts.push([EXTRA_KINDS[x.kind] || 'Extra', extraPayMin(x) / 60]));
+  if (h.earlyReportMin) parts.push(['Early report', h.earlyReportMin / 60]);
+  if (h.payOverridden) return { total: h.paidMin / 60, parts: [['Set by hand', h.paidMin / 60]] };
+  return { total: (h.workedMin + h.extrasMin) / 60, parts };
+}

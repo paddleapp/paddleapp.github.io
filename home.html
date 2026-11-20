@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>My Run</title>
+<script src="analytics.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Inter: the live tracker's scorecard font, used by the leader card. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/pa-live-cards.css">
+<link rel="stylesheet" href="assets/pa-run-card.css">
+<link rel="stylesheet" href="assets/pa-account.css">
+<link rel="stylesheet" href="assets/pa-hours.css">
+<link rel="stylesheet" href="assets/pa-swap.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Paddle">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root {
+  --ink:#0a0b0d; --ink2:#13151a; --ink3:#1d2028;
+  --line:rgba(255,255,255,0.07); --line2:rgba(255,255,255,0.13); --line3:rgba(255,255,255,0.22);
+  --dim:#4a4f5e; --mid:#8a909f; --text:#c8cdd8; --bright:#e8ecf4;
+  --amber:#f5a623; --amber-dim:rgba(245,166,35,0.12);
+  --green:#3dd68c; --green-dim:rgba(61,214,140,0.1);
+  --blue:#4d9fff; --blue-dim:rgba(77,159,255,0.1);
+  --red:#ff6b6b; --red-dim:rgba(255,107,107,0.1);
+  --violet:#a78bfa; --violet-dim:rgba(167,139,250,0.1);
+  --sans:'IBM Plex Sans Condensed',sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+html{font-size:16px}
+body{background:var(--ink);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:1000}
+
+header{background:var(--ink2);border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:200;justify-content:space-between}
+.hd-left{display:flex;align-items:center;gap:12px;min-width:0}
+.hd-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);opacity:.7;animation:pulse 2.5s ease-in-out infinite;flex:0 0 8px}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:.3}}
+.hd-title{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--bright)}
+.hd-sub{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd-sub a{color:var(--dim);text-decoration:none}.hd-sub a:hover{color:var(--amber)}
+
+.tabs{display:flex;gap:6px;padding:12px 16px 0;max-width:860px;margin:0 auto}
+.tab{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;padding:9px 16px;background:none;border:1px solid var(--line);border-radius:4px;color:var(--dim);cursor:pointer}
+.tab:hover{color:var(--mid)}.tab.on{color:var(--amber);border-color:rgba(245,166,35,.35);background:var(--amber-dim)}
+.tab .tab-n{display:inline-block;min-width:16px;padding:0 4px;margin-left:5px;border-radius:8px;background:var(--amber);color:var(--ink);font-size:10px;line-height:16px;text-align:center}
+
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+[hidden]{display:none!important}
+
+.gate{border:1px solid var(--line);border-radius:4px;background:var(--ink2);padding:22px 18px;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--mid);line-height:1.7}
+.gate .pa-submit,.gate .pa-select,.gate .pa-seg{margin-top:12px;text-align:left}
+
+.card{border:1px solid var(--line);border-radius:4px;background:var(--ink2);padding:16px;margin-bottom:12px}
+.k{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.chip{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;padding:6px 10px;border-radius:3px;border:1px solid var(--line2);color:var(--mid);background:var(--ink3)}
+.chip.amber{color:var(--amber);border-color:rgba(245,166,35,.35);background:var(--amber-dim)}
+.chip.blue{color:var(--blue);border-color:rgba(77,159,255,.35);background:var(--blue-dim)}
+.chip.violet{color:var(--violet);border-color:rgba(167,139,250,.35);background:var(--violet-dim)}
+.chip.red{color:var(--red);border-color:rgba(255,107,107,.35);background:var(--red-dim)}
+.chip.green{color:var(--green);border-color:rgba(61,214,140,.35);background:var(--green-dim)}
+/* RUN chip as a button to the official SEPTA paddle PDF. */
+a.chip{text-decoration:none}
+.chip.run-link{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.chip.run-link[href]:hover{border-color:var(--amber);color:var(--bright)}
+.chip.run-link .ext{font-size:10px;letter-spacing:.08em;opacity:.85}
+.chip.run-link.pending{cursor:default}
+.live-sect{margin:14px 0 12px}
+.live-h{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:0 0 8px 2px}
+.leader-cards > .bt + .bt{margin-top:8px}
+/* ALERTS: one row per phone alert, switch on the left, lead time on the right */
+.al-rows{margin-top:12px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.al-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;background:var(--ink);border-bottom:1px solid var(--line)}
+.al-row:last-child{border-bottom:none}
+.al-row .check{margin:6px 0;color:var(--bright)}
+.al-row.off .check{color:var(--mid)}
+.al-lead{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--mid);flex:0 0 auto}
+.al-lead .pa-input{width:64px;text-align:center;padding:8px 6px;margin:0}
+.al-row.off .al-lead{opacity:.45}
+.al-lead span{display:inline-block;width:150px}
+@media (max-width:480px){.al-row{flex-wrap:wrap}.al-lead span{width:auto}}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:12px}
+.stat{background:var(--ink);padding:10px 12px}
+.stat .v{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text);margin-top:3px}
+.stat .v.pay{color:var(--amber)}
+.pieces{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.piece{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-family:var(--mono);font-size:12px;padding:8px 10px;border:1px solid var(--line);border-radius:3px;background:var(--ink)}
+.piece.cur{border-color:rgba(245,166,35,.35);background:var(--amber-dim)}
+.piece .r{color:var(--amber);font-weight:600}.piece .b{color:var(--mid)}.piece .t{color:var(--text);white-space:nowrap}
+.piece .t .ty{color:var(--dim);font-size:10px;margin:0 3px}
+
+.leader{border-color:var(--line);opacity:.92}
+.leader .k{color:var(--dim)}
+.leader-line{font-family:var(--mono);font-size:12px;color:var(--text);margin-top:8px;line-height:1.6}
+.leader-note{font-family:var(--sans);font-size:11px;color:var(--dim);margin-top:6px}
+
+.meta{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--dim);text-align:center;margin-top:8px;line-height:1.8}
+
+.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.form-row > *{flex:1 1 160px}
+.days{display:flex;gap:6px;flex-wrap:wrap}
+.dchip{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;padding:9px 0;flex:1 1 0;min-width:40px;text-align:center;background:var(--ink);border:1px solid var(--line2);border-radius:4px;color:var(--dim);cursor:pointer}
+.dchip.on{color:var(--amber);border-color:rgba(245,166,35,.35);background:var(--amber-dim)}
+.lookup{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:5px;line-height:1.5;min-height:16px}
+.lookup.ok{color:var(--green)}.lookup.warn{color:var(--amber)}
+.preview{margin-top:12px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.row{display:grid;grid-template-columns:92px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;background:var(--ink);cursor:pointer}
+.row:last-child{border-bottom:none}
+.row:hover{background:var(--ink2)}
+.row:focus-visible{outline:1px solid var(--amber);outline-offset:-1px}
+.row.today{background:var(--amber-dim)}
+.row .d{color:var(--bright);font-weight:600}.row .d small{display:block;color:var(--dim);font-weight:400;font-size:10px}
+.row .d.src-pattern{color:var(--blue)}
+.row .d.src-edit{color:var(--violet)}
+.row .d.src-manual{color:var(--green)}
+.row .d.src-vac{color:var(--amber)}
+.row .run{color:var(--text);min-width:0;overflow-wrap:anywhere}.row .run.off{color:var(--dim)}
+.row .t{color:var(--mid);white-space:nowrap}
+.row .run .short-run{font-size:11px;color:var(--blue,#2f6fd6);margin-top:3px}
+.rowbtn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;padding:6px 10px;background:none;border:1px solid var(--line2);border-radius:3px;color:var(--mid);cursor:pointer}
+.rowbtn:hover{color:var(--amber);border-color:var(--line3)}
+.week-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.wk-label{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--bright)}
+.wk-row{display:grid;grid-template-columns:76px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line)}
+.wk-row:last-child{border-bottom:none}
+.wk-row .d{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--bright);padding-top:11px}
+.wk-row .d small{display:block;color:var(--dim);font-weight:400;font-size:10px}
+.wk-row.hol .d{color:var(--amber)}
+.check{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--mid);margin:12px 0;cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--amber)}
+.msgline{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:8px;min-height:16px}
+.msgline.ok{color:var(--green)}.msgline.err{color:var(--red)}.msgline.warn{color:var(--amber)}
+.hint{font-family:var(--sans);font-size:12px;color:var(--dim);line-height:1.5;margin-top:6px}
+.wins{border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:8px}
+.win{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--ink);font-family:var(--mono);font-size:12px}
+.win:last-child{border-bottom:none}
+.win-d{color:var(--bright);font-weight:600;min-width:0}
+.win-d small{display:block;color:var(--mid);font-weight:400;font-size:10px;margin-top:2px;white-space:normal}
+.win-acts{display:flex;gap:6px;flex:0 0 auto}
+.rowbtn.rm:hover{color:var(--red);border-color:rgba(255,107,107,.35)}
+.winnav{display:flex;gap:8px;margin-top:4px}
+.winnav .pa-ghost{flex:1 1 0;width:auto}
+.pay{font-family:var(--mono);font-size:12px;color:var(--mid);margin:10px 0}
+.pay b{color:var(--amber)}
+.sect{margin-bottom:12px}
+.sch-acts{display:flex;gap:8px;margin-top:16px}
+.sch-acts > *{flex:1 1 0;width:auto;margin-top:0}
+.bulk-back{margin-bottom:12px}
+h2.k{margin-bottom:10px}
+
+/* Signal lost / back (recover() in the script). */
+.net-banner,.net-toast{font-family:var(--mono);font-size:11px;letter-spacing:.02em;border-radius:4px;padding:7px 10px;margin-bottom:10px}
+.net-banner{color:var(--amber);border:1px solid rgba(245,166,35,.35);background:var(--amber-dim)}
+.net-toast{color:var(--green);border:1px solid var(--line);background:var(--ink2)}
+.net-missed{border:1px solid rgba(245,166,35,.35);border-radius:4px;background:var(--ink2);padding:12px 14px;margin-bottom:12px;font-family:var(--mono);font-size:12px;color:var(--text)}
+.net-missed-h{color:var(--amber);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.net-missed ul{margin:0 0 10px;padding-left:18px;line-height:1.7}
+
+@media (max-width:640px){
+  .tab{padding:9px 10px;flex:1 1 auto}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .row{grid-template-columns:64px 1fr;grid-template-areas:"d run" "d t";row-gap:2px}
+  .row .d{grid-area:d}.row .run{grid-area:run}.row .t{grid-area:t;white-space:normal}
+  .dchip{min-width:0}
+}
+.day-pop-bg{position:fixed;inset:0;background:rgba(8,18,43,.55);z-index:950;display:flex;align-items:center;justify-content:center;padding:16px}
+.day-pop{background:#fff;color:#08122b;border-radius:6px;padding:18px;width:min(92vw,360px);border-top:4px solid #c8102e}
+.day-pop-title{font-size:18px;font-weight:600;margin-bottom:4px}
+.day-pop-sub{font-family:var(--mono);font-size:12px;color:#56627a;margin-bottom:12px}
+.day-pop .pa-submit,.day-pop .pa-ghost{display:block;width:100%;margin:8px 0 0}
+.hd-run{font-family:var(--mono);font-size:13px;font-weight:600;color:#d3e2fa;margin-left:6px}
+.prc-cur{flex:1;min-width:0;font-family:var(--mono);font-size:12px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prc-cur b{color:var(--bright);font-weight:700;font-size:13px}
+.prc-cur-k{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.prc-cur-sep{margin:0 6px;color:var(--dim)}
+</style>
+<style>
+/* My pick(s): Fill a whole pick */
+.pick-chips{display:flex;flex-wrap:wrap;gap:8px}
+.dchip.pick-chip{flex:0 1 auto;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:auto;min-width:0;height:auto;padding:8px 12px;text-align:left;line-height:1.2}
+.dchip.pick-chip small{font-size:11px;font-weight:500;opacity:.8;letter-spacing:0;text-transform:none}
+.whole-pick{display:flex;flex-direction:column;gap:2px;margin:12px 0 6px;padding:10px 12px;border:1px solid #c9d6ea;border-left:4px solid #0b4ea2;border-radius:8px;background:#f2f6fc}
+.whole-pick b{font-size:15px}
+.whole-pick span{font-size:14px}
+</style>
+<link rel="stylesheet" href="assets/pa-scorecard.css">
+<link rel="stylesheet" href="assets/pa-lf.css">
+<link rel="stylesheet" href="assets/pa-theme.css">
+<link rel="stylesheet" href="assets/pa-menu.css">
+<link rel="stylesheet" href="assets/pa-tags.css">
+<script src="assets/pa-menu.js" defer></script>
+<script src="assets/pa-tags.js"></script>
+<script src="assets/pa-holiday.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-dot"></div>
+    <div>
+      <div class="hd-title">MY RUN <span id="hd-run"></span></div>
+      <span id="hd-ctx" hidden></span>
+    </div>
+  </div>
+  <div id="pa-slot"></div>
+</header>
+
+<nav class="tabs" id="tabs" hidden>
+  <button class="tab on" data-view="today" type="button">TODAY</button>
+  <button class="tab" data-view="schedule" type="button">SCHEDULE</button>
+  <button class="tab" data-view="alerts" type="button">ALERTS</button>
+  <button class="tab" data-view="swap" type="button">SWAP<span class="tab-n" id="swap-n" hidden></span></button>
+</nav>
+
+<div class="wrap">
+  <div class="net-banner" id="net-banner" role="status" hidden>Offline · countdown still runs from your schedule · alerts arrive when signal returns</div>
+  <div class="net-toast" id="net-toast" role="status" hidden></div>
+  <div class="net-missed" id="net-missed" hidden>
+    <div class="net-missed-h">While you were offline</div>
+    <ul id="net-missed-list"></ul>
+    <button class="rowbtn" id="net-missed-ok" type="button">OK</button>
+  </div>
+  <div class="pa-sync" id="sync-line" hidden></div>
+  <div class="gate" id="gate-out">Sign in to see your next run.<br>Your schedule follows you to every device.</div>
+
+  <div class="gate" id="gate-retry" hidden>
+    <span id="gate-retry-text">Can't reach the server to load your account.</span><br>
+    Check your signal, then try again. Nothing on your account has changed.
+    <button class="pa-submit" id="gate-retry-btn" type="button" style="margin-top:14px">Try again</button>
+  </div>
+
+  <!-- First-run setup: depot and driver type, vacation weeks, runs. Filled
+       by assets/pa-setup.js, which owns everything inside it. -->
+  <div id="gate-setup" hidden></div>
+
+  <section id="view-today" hidden>
+    <div id="today-body"></div>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <section id="view-schedule" hidden>
+    <div id="sch-week"></div>
+  </section>
+
+  <!-- Bulk Edit page for holddown / slate operators (week by week, next 4
+       weeks). Regular operators get the Bulk edit window instead
+       (assets/pa-sched-edit.js). Reached from Edit -> Bulk edit. -->
+  <section id="view-bulk" hidden>
+    <button class="pa-ghost bulk-back" id="bulk-back" type="button">&larr; Back to schedule</button>
+    <div class="card sect" id="sch-form"></div>
+    <div class="card sect" id="sch-vacation"></div>
+    <div class="card sect">
+      <h2 class="k">Next 4 weeks</h2>
+      <div class="preview" id="sch-list"></div>
+      <div class="hint" id="sch-legend">Tap a day to change it. Past days are editable too.</div>
+    </div>
+  </section>
+
+  <section id="view-alerts" hidden>
+    <div class="card sect" id="alerts-body"></div>
+  </section>
+
+  <!-- SWAP: board, my offers, interested, new offer. assets/pa-swap-tab.js
+       owns everything inside it. -->
+  <section id="view-swap" hidden>
+    <div id="swap-body"></div>
+  </section>
+</div>
+
+<script>
+// If this page's modules fail to link - an update landed and the browser
+// mixed old and new files - reload once to fetch a consistent set, and if
+// that doesn't fix it, say so instead of leaving a blank screen.
+window.addEventListener('error', function (e) {
+  var m = String((e && (e.message || (e.error && e.error.message))) || '');
+  if (!/does not provide an export|doesn't provide an export|Importing binding name|Importing a module script failed|dynamically imported module/i.test(m)) return;
+  var again = false;
+  try { again = !!sessionStorage.getItem('pa_update_reload'); sessionStorage.setItem('pa_update_reload', '1'); } catch (_) {}
+  if (!again) { location.reload(); return; }
+  var w = document.querySelector('.wrap');
+  if (w) w.innerHTML = '<div class="gate">The app was just updated and this page could not finish loading.<br>Close this tab and open the app again.</div>';
+}, true);
+</script>
+<script type="module" src="assets/pa-account-ui.js"></script>
+<script type="module">
+import * as S from './assets/pa-schedule.js';
+import * as A from './assets/pa-assignments.js';
+import { computeState, phaseLabel } from './assets/pa-countdown.js';
+import * as L from './assets/pa-live.js';
+import * as C from './assets/pa-live-cards.js';
+import * as RC from './assets/pa-run-card.js';
+import { mountLF } from './assets/pa-lf-view.js';
+import { mockFromUrl } from './assets/pa-lf-feed.js';
+import { loadProfile, loadProfileSafe, ensureUser } from './assets/pa-store.js';
+import * as N from './assets/pa-notify.js';
+import * as E from './assets/pa-edit-sheet.js';
+import * as SU from './assets/pa-setup.js';
+import * as HV from './assets/pa-hours-view.js';
+import * as SW from './assets/pa-swap-tab.js';
+import * as SE from './assets/pa-sched-edit.js';
+import * as P from './assets/pa-push.js';
+import * as RA from './assets/pa-run-alerts.js';
+import { initFirebase } from './assets/pa-firebase.js';
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+
+const LF_MOCK = mockFromUrl();
+const ctx = {
+  lfOpen: new URLSearchParams(location.search).has('lf') || !!LF_MOCK, lfView: null, lfEl: null,
+  user: null, profile: null, overrides: {}, gtfs: {}, view: 'today',
+  current: null,                 // { mode:'live'|'next'|'none', date, r, run, st, nowMin }
+  trips: new Map(),              // date -> Map(block -> trips[])
+  tickTimer: null, leaderTimer: null, wakeLock: null,
+  runCache: new Map(), weekCursor: null, districts: [], seasonLabel: '',
+  authToken: 0, drawnVersion: -1, redrawTimer: null, runsGate: false
+};
+
+// ---- helpers --------------------------------------------------------------
+
+async function slugForDate(depotKey, iso) { return E.slugForDate(depotKey, iso); }
+
+/** Normalised run for a resolved day (shared with hours.html). */
+async function runFor(r, iso) { return E.runFor(r, iso, ctx.profile && ctx.profile.depotKey); }
+
+function fmtCountdown(ms) {
+  const neg = ms < 0; let s = Math.floor(Math.abs(ms) / 1000);
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60); s -= m * 60;
+  const core = (d ? d + 'd ' : '') + (d || h ? S.pad2(h) + ':' : '') + S.pad2(m) + ':' + S.pad2(s);
+  return (neg ? '-' : '') + core;
+}
+
+function findNext(fromIso, days) {
+  for (let i = 0; i <= days; i++) {
+    const d = S.addDays(fromIso, i);
+    const r = A.resolve(d, ctx.overrides);
+    if (!r.off && r.runNo) return { date: d, r };
+  }
+  return null;
+}
+
+// ---- boot / auth ----------------------------------------------------------
+
+function showOnly(id) {
+  ['gate-out', 'gate-retry', 'gate-setup', 'view-today', 'view-schedule', 'view-bulk', 'view-alerts', 'view-swap'].forEach(x => { $(x).hidden = x !== id; });
+  $('tabs').hidden = !['view-today', 'view-schedule', 'view-bulk', 'view-alerts', 'view-swap'].includes(id);
+}
+// 'bulk' is the old schedule editor, shown under the SCHEDULE tab.
+function setView(v, params) {
+  ctx.view = v;
+  const tab = v === 'bulk' ? 'schedule' : v;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === tab));
+  showOnly(v === 'today' ? 'view-today' : v === 'alerts' ? 'view-alerts' : v === 'bulk' ? 'view-bulk' : v === 'swap' ? 'view-swap' : 'view-schedule');
+  if (v === 'schedule') week.render();
+  if (v === 'bulk') renderSchedule();
+  if (v === 'alerts') renderAlerts();
+  if (v === 'swap') swap.show(params || {});
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setView(t.dataset.view)));
+
+// SCHEDULE tab: the Weekly Hours week, read-only, with an Edit button under
+// the Saturday row (Edit this week / Bulk edit / Vacation edit) and the year
+// to date under the totals. Tapping a day opens Edit this day straight away.
+// Done from a click on the week's rows, so the week's own render never
+// changes mode.
+// The guide under the Schedule tab's totals: one line on what to tap, then
+// what each column means and what the pay extras are, one per line.
+function scheduleGuide() {
+  const box = el('div', 'hv-guide');
+  box.appendChild(el('p', 'hv-guide-lead', 'Tap a day to change just that day, or Edit schedule for this week, a whole picking or your vacation.'));
+  const cols = el('dl', 'hv-guide-cols');
+  [['Sched', 'Route time: pull-out or relief to pull-in or relief of every piece, short runs included.'],
+   ['Actual', 'The time you really worked: start to finish, plus minutes held late.'],
+   ['Pay', 'The run’s pay plus the extras below.']].forEach(([k, v]) => cols.append(el('dt', null, k), el('dd', null, v)));
+  box.appendChild(cols);
+  box.appendChild(el('div', 'hv-guide-h', 'Pay extras'));
+  const ex = el('dl', 'hv-guide-extras');
+  [['Late allowance', 'minutes × 1.5'], ['Overtime', '+4 h'], ['Holiday premium', '+12 h (8 + 4)'], ['Worked holiday', '+8 h'],
+   ['Holiday off', '8 h'], ['Personal holiday', 'your run’s pay'], ['Vacation', '44 h a week']].forEach(([k, v]) => ex.append(el('dt', null, k), el('dd', null, v)));
+  box.appendChild(ex);
+  box.appendChild(el('p', 'hv-guide-note', 'These extra hours are paid, not worked.'));
+  const alt = el('p', 'hv-guide-note');
+  alt.append(el('span', 'hv-guide-tag', 'alt schedule'), document.createTextNode(' days are red: SEPTA runs an alternate schedule, so check the run and the hours.'));
+  box.appendChild(alt);
+  return box;
+}
+const holidayInfo = (iso, routes) => (ctx.hol && window.PaHoliday ? window.PaHoliday.info(iso, routes, ctx.hol) : null);
+const week = HV.mount($('sch-week'), {
+  readOnly: true, getProfile: () => ctx.profile, onEditDay: r => openEdit(r),
+  onEditMenu: ws => SE.openMenu(ws), ytd: true, workPaid: true, dayInfo: holidayInfo,
+  hint: scheduleGuide()
+});
+
+// The routes a day's run (and its short run) drives, as the Holidays page names them.
+const runRoutes = run => run && run.pieces ? run.pieces.concat(run.shortRun && run.shortRun.pieces || []).map(p => p.routeLabel) : [];
+
+// Official SEPTA holidays (the Holidays page's data) on the user's calendars:
+// a Sunday-schedule holiday is everyone's; an ALTERNATE schedule is only the
+// user's when the run they work that day is on one of its routes - for
+// everybody else the day is a regular one. userAlt: iso -> note text or ''.
+const userAlt = new Map();
+let userAltBusy = null;
+function loadUserAlt() {
+  if (userAltBusy) return userAltBusy;
+  userAltBusy = (async () => {
+    const H = window.PaHoliday;
+    if (!H || !ctx.profile) return;
+    if (!ctx.hol) ctx.hol = await H.load();
+    const from = S.addDays(S.todayIso(), -400), to = S.addDays(S.todayIso(), 800);
+    const dates = Object.keys(ctx.hol.days || {}).filter(iso => ctx.hol.days[iso].alt && iso >= from && iso <= to);
+    await Promise.all(dates.map(async iso => {
+      const r = A.resolve(iso, ctx.overrides);
+      const run = r.off || r.unregistered ? null : await runFor(r, iso).catch(() => null);
+      const inf = run ? H.info(iso, runRoutes(run), ctx.hol) : null;
+      userAlt.set(iso, inf && inf.alt
+        ? 'SEPTA runs an alternate ' + inf.dayLabel.toLowerCase() + ' schedule on your route' + (inf.altRoutes.length === 1 ? ' ' : 's ') + inf.altRoutes.join(', ')
+        : '');
+    }));
+  })().catch(() => {});
+  return userAltBusy;
+}
+// A schedule change (run swapped, day off...) can change whose route is alternate.
+function resetUserAlt() { userAlt.clear(); userAltBusy = null; }
+SU.setUserAlt(iso => userAlt.get(iso) || null);
+
+// Notes above a day's fields: vacation week, holiday, alternate schedule.
+function dayNotes(r) {
+  const out = [];
+  const inf = holidayInfo(r.date, null);
+  if (r.holidayDate || (inf && inf.changed)) {
+    out.push(SE.note((inf && inf.name ? inf.name + ': ' : 'Holiday: ') + (inf ? inf.dayLabel : 'Sunday') + ' schedule. Check the run and the holiday pay.'));
+  }
+  if (inf && inf.alt && !r.off && !r.unregistered) {
+    // Only when this day's run is on one of the alternate routes; filled in
+    // once the run's routes are known.
+    const slot = document.createElement('div');
+    out.push(slot);
+    runFor(r, r.date).catch(() => null).then(run => {
+      const mine = run ? holidayInfo(r.date, runRoutes(run)) : null;
+      if (!mine || !mine.alt || !slot.isConnected) { slot.remove(); return; }
+      slot.replaceWith(SE.note((mine.name ? mine.name + ': ' : '') + 'SEPTA runs an alternate ' + mine.dayLabel.toLowerCase()
+        + ' schedule on your route' + (mine.altRoutes.length === 1 ? ' ' : 's ') + mine.altRoutes.join(', ')
+        + '. There is no paddle for it, so check the run and the hours.', 'alt'));
+    });
+  }
+  return out;
+}
+SE.configure({
+  getProfile: () => ctx.profile, getOverrides: () => ctx.overrides,
+  onSaved: () => { resetUserAlt(); refreshToday(); redrawScheduleViews(); },
+  dayNotes, loadUserAlt, openBulkPage: () => setView('bulk')
+});
+if (window.PaHoliday) window.PaHoliday.load().then(d => { ctx.hol = d; if (ctx.view === 'schedule') week.render(); }).catch(() => {});
+
+$('sch-week').addEventListener('click', e => {
+  const row = e.target.closest ? e.target.closest('.hv-row') : null;
+  if (!row || !row.parentElement) return;
+  const idx = [...row.parentElement.children].indexOf(row);
+  if (idx < 0 || idx > 6 || !week.state.weekStart) return;
+  openEdit(A.resolve(S.addDays(week.state.weekStart, idx), ctx.overrides));
+});
+
+// SWAP tab. Opens to the operator's own district.
+const swap = SW.mount($('swap-body'), {
+  getUser: () => ctx.user, getProfile: () => ctx.profile, getOverrides: () => ctx.overrides,
+  onBadge: n => { const b = $('swap-n'); b.hidden = !n; b.textContent = String(n); }
+});
+
+// Links from the public board (swap.html): ?view=swap&offer=<id> or &new=1.
+// Read once; the offer id also waits in localStorage through sign-up.
+const urlParams = (() => {
+  const q = new URLSearchParams(location.search);
+  const p = { view: q.get('view'), offer: q.get('offer'), new: q.get('new') === '1' };
+  if (p.offer) { try { localStorage.setItem(SW.PENDING_KEY, p.offer); } catch (_) {} }
+  if (p.view) history.replaceState(null, '', location.pathname);
+  return p;
+})();
+const pendingSwap = () => { try { return !!localStorage.getItem(SW.PENDING_KEY); } catch (_) { return false; } };
+if (urlParams.offer || pendingSwap()) {
+  $('gate-out').textContent = 'Sign in or create a free account to check the swap offer you opened against your schedule.';
+}
+$('bulk-back').addEventListener('click', () => setView('schedule'));
+
+window.addEventListener('pa:auth', e => {
+  ctx.user = e.detail.user;
+  stopTimers();
+  if (!ctx.user) {
+    ctx.authToken++;
+    ctx.runsGate = false;
+    A.detach(); N.detach(); ctx.profile = null; swap.reset(); $('swap-n').hidden = true;
+    showOnly('gate-out'); $('hd-ctx').textContent = ''; renderSyncLine();
+    return;
+  }
+  start();
+});
+$('gate-retry-btn').addEventListener('click', () => start());
+
+async function start() {
+  const token = ++ctx.authToken;
+  ensureUser(ctx.user.uid);
+  // The server's answer wins, but a slow or failed read must not look like a
+  // brand-new account: fall back to this device's copy of the profile, and
+  // only ask for depot and driver type when the SERVER says they're missing.
+  const res = await loadProfileSafe();
+  if (token !== ctx.authToken) return;                  // signed out / retried meanwhile
+  ctx.profile = res.profile;
+  if (res.source === 'server' && SU.needsSetup(res.profile)) { await renderSetup(); return; }
+  if (!ctx.profile) {
+    $('gate-retry-text').textContent = 'Can’t load your account right now (' + res.error + ').';
+    showOnly('gate-retry');
+    return;
+  }
+  if (SU.needsSetup(ctx.profile)) { await renderSetup(); return; }
+  await boot();
+  // Showing this device's copy: pick up any change made on another device.
+  if (res.source === 'device') {
+    loadProfile().then(p => { if (p && token === ctx.authToken) { ctx.profile = p; E.configure({ profile: p }); scheduleRedraw(true); } }).catch(() => {});
+  }
+}
+
+function renderSyncLine() { E.renderSync($('sync-line'), A.getState(), () => A.retryNow()); }
+
+// Snapshots also arrive for connection-only changes; redraw the schedule only
+// when it actually changed, and coalesce bursts.
+function scheduleRedraw(force) {
+  if (!force && A.getState().version === ctx.drawnVersion) return;
+  clearTimeout(ctx.redrawTimer);
+  ctx.redrawTimer = setTimeout(() => {
+    ctx.drawnVersion = A.getState().version;
+    refreshToday();
+    redrawScheduleViews();
+    syncPhoneAlerts();
+  }, 150);
+}
+
+// ---- phone alerts (arrive with the app closed) ------------------------------
+// The phone plans its own alerts and saves only what changed
+// (assets/pa-run-alerts.js); functions/ sends them. Called after every
+// schedule change, so an edited day moves its alerts too. Planning starts
+// yesterday, for a run still going past midnight.
+function syncPhoneAlerts(now, force) {
+  clearTimeout(ctx.alertSyncTimer);
+  ctx.alertSyncTimer = setTimeout(async () => {
+    if (!ctx.user || !ctx.profile) return;
+    const s = N.getSettings(), uid = ctx.user.uid, token = ctx.authToken;
+    if (!s.pushEnabled && !force && !RA.hasLocal(uid)) return;      // never used here: nothing to do
+    const fb = initFirebase();
+    if (!fb) return;
+    try {
+      const days = s.pushEnabled
+        ? await RA.upcomingRuns({ resolve: d => A.resolve(d, ctx.overrides), runFor: (r, d) => runFor(r, d),
+                                  tripsOf: (p, dt) => S.pieceTrips(p, dt), from: S.addDays(S.todayIso(), -1), n: RA.PLAN_DAYS + 1 })
+        : [];
+      if (token !== ctx.authToken) return;
+      ctx.phoneAlerts = await RA.syncRunAlerts({ db: fb.db, uid, enabled: !!s.pushEnabled, settings: s, days });
+    } catch (e) {
+      ctx.phoneAlerts = { error: e.code || e.message || 'error' };
+      console.warn('[pa] phone alerts', ctx.phoneAlerts.error);
+    }
+    if (ctx.view === 'alerts') renderAlerts();
+  }, now ? 0 : 3000);
+}
+
+async function boot() {
+  const today = S.todayIso();
+  $('hd-ctx').textContent = ' · ' + (ctx.profile.depotLabel || ctx.profile.depotKey);
+  // Holidays, season and GTFS version come from other files on other sites.
+  // None of them may hold up the operator's own schedule: fetch in the
+  // background and redraw when each one lands.
+  S.loadCalendarOverrides().then(ov => { ctx.overrides = ov || {}; week.state.overrides = ctx.overrides; scheduleRedraw(true); }).catch(() => {});
+  S.loadGtfsManifest().then(g => { ctx.gtfs = g || {}; if ($('meta')) $('meta').textContent = metaLine(); }).catch(() => {});
+  slugForDate(ctx.profile.depotKey, today).then(info => {
+    ctx.seasonLabel = info && info.season ? info.season.label : '';
+    $('hd-ctx').textContent = ' · ' + (ctx.profile.depotLabel || ctx.profile.depotKey) + (ctx.seasonLabel ? ' · ' + ctx.seasonLabel : '');
+  }).catch(() => {});
+  if (!ctx.subscribed) {
+    ctx.subscribed = true;
+    A.onChange(() => { renderSyncLine(); scheduleRedraw(false); requireRuns(); });
+  }
+  E.configure({ profile: ctx.profile });
+  const toSwap = urlParams.view === 'swap' || pendingSwap();
+  setView('today');
+  await A.attach(ctx.user.uid);          // returns at once when this device has a copy
+  renderSyncLine();
+  N.attach(ctx.user.uid).catch(() => {});
+  N.registerSW();
+  checkPush();                           // a changed or dropped push registration, mended
+  ctx.drawnVersion = A.getState().version;
+  await refreshToday();
+  requireRuns();
+  syncPhoneAlerts();
+  if (offlineSince()) recover(true);     // the app was shut while offline: catch up now
+  if (toSwap && !ctx.runsGate) { setView('swap', { offer: urlParams.offer, new: urlParams.new }); urlParams.view = urlParams.offer = null; urlParams.new = false; }
+  swap.refreshBadge();
+}
+
+// ---- runs gate (set up, but no run on record) -----------------------------
+// An account is not usable until it holds a run. Only the server's word
+// counts: this device's copy, or a first connection still under way, never
+// puts the gate up.
+
+function requireRuns() {
+  const st = A.getState();
+  if (ctx.runsGate || !ctx.user || SU.needsSetup(ctx.profile) || st.sync.status !== 'live' || SU.hasRuns(st)) return;
+  ctx.runsGate = true;
+  const token = ctx.authToken;
+  showOnly('gate-setup');
+  SU.openSetup($('gate-setup'), {
+    user: ctx.user,
+    profile: ctx.profile,
+    overrides: ctx.overrides,
+    runsOnly: true,
+    onDone: () => {
+      ctx.runsGate = false;
+      if (token !== ctx.authToken) return;
+      setView(pendingSwap() ? 'swap' : 'today');
+      scheduleRedraw(true);
+    }
+  });
+}
+
+// ---- setup (new account: no depot / driver type yet) ----------------------
+// The wizard asks for the depot, the driver type, vacation weeks and runs,
+// and writes the profile last. Once it reports back, the account is complete
+// and the normal screens take over.
+
+async function renderSetup() {
+  showOnly('gate-setup');
+  // Holidays decide a day's schedule, so the wizard gets them if they are in
+  // yet; it asks for runs either way.
+  if (!ctx.overrides || !Object.keys(ctx.overrides).length) {
+    S.loadCalendarOverrides().then(ov => { ctx.overrides = ov || {}; }).catch(() => {});
+  }
+  await SU.openSetup($('gate-setup'), {
+    user: ctx.user,
+    profile: ctx.profile,
+    overrides: ctx.overrides,
+    onDone: async saved => {
+      // The wizard hands back what it wrote. Re-reading it here would put a
+      // network call between a finished setup and the first screen.
+      ctx.profile = saved || ctx.profile;
+      if (!ctx.profile) { try { ctx.profile = await loadProfile(); } catch (_) {} }
+      if (ctx.profile) await boot();
+    }
+  });
+}
+
+// ---- TODAY ----------------------------------------------------------------
+
+function tripsFor(iso) { return ctx.trips.get(iso) || new Map(); }
+
+async function refreshToday() {
+  if (!ctx.user || !A.isAttached()) return;
+  const today = S.todayIso();
+  const nowM = S.nowMinutes();
+  let chosen = null, doneToday = null;
+
+  // A run belongs to its SCHEDULE day (the paddle CSV's), and its minutes
+  // count from that day's midnight: yesterday's run can still be going past
+  // midnight, and tomorrow's night liner reports tonight at 11:5x PM (a
+  // negative minute). So look at yesterday, today and tomorrow in turn.
+  for (const off of [-1, 0, 1]) {
+    const date = S.addDays(today, off);
+    const r = A.resolve(date, ctx.overrides);
+    if (r.off || !r.runNo) continue;
+    const run = await runFor(r, date);
+    if (!run) { if (off === 0) { chosen = { mode: 'unknown', date, r }; break; } continue; }
+    const nowMin = nowM - off * 1440;
+    const st = computeState({ run, nowMin, tripsByBlock: tripsFor(date) });
+    if (st.phase === 'done') { if (off === 0) doneToday = { date, r, run }; continue; }
+    // Yesterday's counts only while it is still going; tomorrow's only once
+    // it has started (before that it is simply the next run, below).
+    if (off === -1 && ['before_report', 'before_pullout'].includes(st.phase)) continue;
+    if (off === 1 && st.phase === 'before_report') continue;
+    chosen = { mode: 'live', date, r, run, st, nowMin };
+    break;
+  }
+  // Nothing on now -> the next registered day.
+  if (!chosen) {
+    const nx = findNext(S.addDays(today, 1), 21);
+    chosen = nx
+      ? { mode: 'next', date: nx.date, r: nx.r, run: await runFor(nx.r, nx.date), doneToday }
+      : { mode: 'none', date: today, r: A.resolve(today, ctx.overrides), doneToday };
+  }
+
+  ctx.current = chosen;
+  renderToday();
+  startTicker();
+  if (chosen.mode === 'live') { ensureTrips(chosen); refreshLeader(); }
+  refreshDetours();
+}
+
+async function ensureTrips(c) {
+  if (!c.run || c.run.synthetic || ctx.trips.has(c.date)) return;
+  const m = new Map();
+  ctx.trips.set(c.date, m);                    // reserve so we don't double-load
+  await Promise.all(c.run.pieces.map(async p => {
+    let trips = [];
+    try { trips = await S.pieceTrips(p, c.run.dayType); } catch (_) {}
+    // Two pieces can share a block; keep both pieces' trips, not the last one loaded.
+    m.set(p.block, (m.get(p.block) || []).concat(trips).sort((a, b) => a.s - b.s));
+  }));
+  recompute();
+}
+
+function recompute() {
+  const c = ctx.current;
+  if (!c || c.mode !== 'live' || !c.run) return;
+  // +1440 for yesterday's run, -1440 for tomorrow's night liner.
+  c.nowMin = S.nowMinutes() + S.daysBetween(c.date, S.todayIso()) * 1440;
+  const st = computeState({ run: c.run, nowMin: c.nowMin, tripsByBlock: tripsFor(c.date) });
+  const changed = !c.st || st.phase !== c.st.phase || st.targetMin !== c.st.targetMin;
+  c.st = st;
+  if (st.phase === 'done') { refreshToday(); return; }
+  if (changed) { renderToday(); refreshLeader(); }
+}
+
+function stopTimers() {
+  clearInterval(ctx.tickTimer); ctx.tickTimer = null;
+  clearInterval(ctx.leaderTimer); ctx.leaderTimer = null;
+  clearInterval(ctx.detourTimer); ctx.detourTimer = null;
+  if (ctx.wakeLock) { try { ctx.wakeLock.release(); } catch (_) {} ctx.wakeLock = null; }
+}
+function startTicker() {
+  clearInterval(ctx.tickTimer);
+  let n = 0;
+  ctx.tickTimer = setInterval(() => { tick(); if (++n % 20 === 0) recompute(); }, 1000);
+  tick();
+}
+
+function targetMs() {
+  const c = ctx.current;
+  if (!c) return null;
+  if (c.mode === 'live' && c.st && c.st.targetMin != null) return S.minToMs(c.date, c.st.targetMin);
+  if (c.mode === 'next' && c.run && c.run.reportMin != null) return S.minToMs(c.date, c.run.reportMin);
+  return null;
+}
+
+function tick() {
+  const d = $('cd-digits'); if (!d) return;
+  const t = targetMs(); if (t == null) { d.textContent = '—'; return; }
+  const ms = t - Date.now();
+  d.textContent = fmtCountdown(ms);
+  d.classList.toggle('soon', ms > 0 && ms <= 5 * 60000);
+  d.classList.toggle('now', ms <= 0);
+  if (ms < -1500 && !ctx.refreshing) {
+    ctx.refreshing = true;
+    const p = ctx.current && ctx.current.mode === 'live' ? Promise.resolve(recompute()) : refreshToday();
+    Promise.resolve(p).finally(() => { ctx.refreshing = false; });
+  }
+}
+
+// Keep the screen on during a layover countdown (Safari 18.4+ / Chrome).
+async function wakeLock(on) {
+  try {
+    if (on && !ctx.wakeLock && navigator.wakeLock && document.visibilityState === 'visible') {
+      ctx.wakeLock = await navigator.wakeLock.request('screen');
+      ctx.wakeLock.addEventListener('release', () => { ctx.wakeLock = null; });
+    } else if (!on && ctx.wakeLock) { await ctx.wakeLock.release(); ctx.wakeLock = null; }
+  } catch (_) {}
+}
+// ---- signal lost and back ---------------------------------------------------
+// The operator's phone goes into Airplane Mode on its own when they leave the
+// loop and comes back out when they return. None of that may need them to
+// close and reopen the app: whenever the signal returns or the app comes back
+// to the front, recover() re-fetches the live data, re-checks the push
+// registration (and the notification permission, without asking) and
+// recomputes the countdown, which only ever uses the schedule and this
+// phone's clock.
+//
+// What a web app cannot do: run while it is closed or in the background.
+// Alerts then come from the server as pushes, which the phone's push service
+// holds while it is offline and delivers when it reconnects, or drops once
+// the moment has passed (functions/lib/run-alerts.js sets each one's TTL).
+//
+// When the offline spell began is kept in localStorage, so an iPhone that
+// shut the app while offline still shows what came due in the meantime.
+const LS_OFFLINE = 'pa_offline_since';
+const offlineSince = () => { try { return +localStorage.getItem(LS_OFFLINE) || 0; } catch (_) { return 0; } };
+
+function markOffline() {
+  try { if (!offlineSince()) localStorage.setItem(LS_OFFLINE, String(Date.now())); } catch (_) {}
+  $('net-banner').hidden = false;
+  $('net-toast').hidden = true;
+}
+
+function recover(force) {
+  if (!navigator.onLine) { markOffline(); recompute(); tick(); refreshLeader(); return; }
+  const since = offlineSince();
+  try { localStorage.removeItem(LS_OFFLINE); } catch (_) {}
+  $('net-banner').hidden = true;
+  if (!ctx.user || !A.isAttached()) return;
+  // Alerts that came due while offline, read before the alert sync forgets them.
+  if (since) showMissed(RA.dueBetween(ctx.user.uid, since, Date.now()));
+  // A day's trips that failed to load offline would otherwise stay empty.
+  for (const [date, m] of ctx.trips) if (![...m.values()].some(t => t.length)) ctx.trips.delete(date);
+  recompute();
+  const done = refreshToday();                     // also re-fetches the leaders and detours
+  checkPush(force || !!since);
+  if (since) Promise.resolve(done).finally(() => toast('Back online · refreshed'));
+}
+
+function toast(text) {
+  const t = $('net-toast');
+  t.textContent = text; t.hidden = false;
+  clearTimeout(ctx.toastTimer);
+  ctx.toastTimer = setTimeout(() => { t.hidden = true; }, 4000);
+}
+
+function showMissed(list) {
+  const box = $('net-missed');
+  if (!list.length) return;
+  const at = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const ul = $('net-missed-list');
+  ul.textContent = '';
+  for (const a of list) ul.appendChild(el('li', null, at(a.at) + ' · ' + a.title + (a.body ? ' — ' + a.body : '')));
+  box.hidden = false;
+}
+$('net-missed-ok').addEventListener('click', () => { $('net-missed').hidden = true; });
+
+window.addEventListener('offline', markOffline);
+window.addEventListener('online', () => recover(true));
+window.addEventListener('pageshow', e => { if (e.persisted) recover(false); });   // back from the page cache
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') recover(false); });
+if (!navigator.onLine) markOffline();
+// sw.js says the browser replaced the push subscription: mend it now.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'pa-push-changed') checkPush(true); });
+}
+
+// The phone's push registration and its saved alerts, checked on every open
+// and every return to the app (an iPhone keeps the app alive in the
+// background, so "opening" it is often just this). At most every 5 minutes,
+// unless the signal just came back or the browser changed the subscription.
+function checkPush(force) {
+  if (!ctx.user || ctx.pushChecking || (!force && Date.now() - (ctx.pushCheckedAt || 0) < 5 * 60000)) return;
+  ctx.pushCheckedAt = Date.now();
+  ctx.pushChecking = true;
+  P.refreshPush(ctx.user.uid)
+    .then(r => { if (r === 'reconnected' && ctx.view === 'alerts') renderAlerts(); })
+    .finally(() => { ctx.pushChecking = false; });
+  syncPhoneAlerts();
+}
+
+function currentPiece(c) {
+  const ps = (c.run && c.run.pieces) || [];
+  if (!ps.length) return null;
+  const now = typeof c.nowMin === 'number' ? c.nowMin : null;
+  return ps.find(p => now != null && p.startMin != null && p.endMin != null && now >= p.startMin - 5 && now <= p.endMin + 5)
+      || ps.find(p => p.endMin == null || now == null || p.endMin >= now)
+      || ps[0];
+}
+
+// The bus on the current piece's block, found the way the Live page finds it:
+// the live feed first, then the block <-> bus pairing (a bus keeps its block
+// all day, even while it rests at a terminal and drops out of the feed).
+async function curBus(p) {
+  // The answer arrives later; write it only if this run is still the one on
+  // screen and still on now (not replaced by the next, unstarted run).
+  const asked = ctx.current;
+  const show = v => {
+    const c = ctx.current, b = $('cur-bus');
+    if (b && v && c === asked && c && c.mode === 'live') b.textContent = v;
+  };
+  // Your bus is only known once your run has started. Before the report
+  // time: nothing (the block's bus now, or last night's, isn't yours).
+  // Reported, not pulled out yet: only a bus out on the block right now
+  // (a relief run's bus; a pull-out bus isn't out yet). Under way: live
+  // first, then the block's bus from memory, seen on this run's own day.
+  const phase = asked && asked.st ? asked.st.phase : null;
+  if (!asked || asked.mode !== 'live' || !phase || phase === 'before_report') return;
+  const liveOnly = phase === 'before_pullout';
+  const rep = asked.run && asked.run.reportMin != null ? asked.run.reportMin : 0;
+  const since = S.minToMs(asked.date, Math.min(0, rep));        // the run's day (a night liner's evening before)
+  try {
+    const routes = p.routes || [];
+    const buses = await L.fetchRoutes(routes);
+    const live = buses.find(b => String(b.BlockID || '') === String(p.block));
+    if (live) show(String(live.VehicleID || live.label || ''));
+    await L.learnPairs(routes, buses, p.block);
+    if (!live && !liveOnly) show(L.knownBus(p.block, routes[0] || '', undefined, since));
+  } catch (_) {}
+}
+
+function curLabel(p) {
+  const lab = el('div', 'prc-cur');
+  const put = (k, v, id) => {
+    lab.append(el('span', 'prc-cur-k', k + ' '));
+    const b = el('b', null, v); if (id) b.id = id; lab.append(b);
+  };
+  put('Route', p ? p.routeLabel : '—');
+  lab.append(el('span', 'prc-cur-sep', '·'));
+  put('Block', p ? p.block : '—');
+  lab.append(el('span', 'prc-cur-sep', '·'));
+  put('Bus', '—', 'cur-bus');
+  return lab;
+}
+
+function renderToday() {
+  const c = ctx.current, body = $('today-body');
+  if (ctx.lfView && !(ctx.lfOpen && c && c.mode === 'live')) { ctx.lfView.destroy(); ctx.lfView = ctx.lfEl = null; }
+  body.textContent = '';
+  $('hd-run').textContent = '';
+  if (!c) return;
+
+  if (c.mode === 'unknown') {
+    const g = el('div', 'gate');
+    g.append('Run ' + c.r.runNo + ' is registered for today but is not in the ' + (ctx.profile.depotLabel || ctx.profile.depotKey) + ' ' + c.r.dayType + ' paddle.', el('br'), 'Add a report time to get a countdown.');
+    const b = el('button', 'pa-submit', 'Edit today'); b.type = 'button'; b.style.marginTop = '14px';
+    b.addEventListener('click', () => openEdit(c.r));
+    g.appendChild(b); body.appendChild(g);
+    $('meta').textContent = metaLine(); wakeLock(false); return;
+  }
+  // Nothing to show yet is not the same as nothing registered: never tell an
+  // operator their schedule is empty while it is still loading or failing.
+  const sync = A.getState().sync;
+  if (c.mode === 'none' && !c.doneToday && !A.getState().patterns.length && ['connecting', 'error'].includes(sync.status)) {
+    const g = el('div', 'gate');
+    g.textContent = sync.status === 'error'
+      ? 'Can’t load your schedule right now (' + sync.error + '). It will retry by itself — or tap Retry above.'
+      : 'Loading your schedule…';
+    body.appendChild(g);
+    $('meta').textContent = metaLine(); wakeLock(false); return;
+  }
+  if (c.mode === 'none') {
+    const g = el('div', 'gate');
+    const vac = A.resolve(S.todayIso(), ctx.overrides).source === 'vacation';
+    g.append(vac ? 'You are on vacation this week — 44 hours, no runs.'
+                 : (c.doneToday ? 'Done for today. ' : '') + 'No run registered' + (c.doneToday ? ' in the next three weeks.' : ' for today.'), el('br'));
+    const b = el('button', 'pa-submit', 'Set up my schedule'); b.type = 'button'; b.style.marginTop = '14px';
+    b.addEventListener('click', () => setView('schedule'));
+    g.appendChild(b); body.appendChild(g);
+    $('meta').textContent = metaLine(); wakeLock(false); return;
+  }
+
+  // One run a day: the Paddle App's run scorecard, with the countdown header
+  // sitting on top of it. The header holds the status line and the countdown
+  // to the next scheduled moment, nothing else.
+  const run = c.run, r = c.r;
+  const top = el('div');
+  top.appendChild(el('div', 'prc-cd-status', statusLine(c)));
+  top.appendChild(el('div', 'prc-cd-digits', '—')).id = 'cd-digits';
+  const dayType = (run && run.dayType) || r.runDayType || r.dayType;
+  // Leader / Follower view: the same SCHEDULED countdown on top, then only
+  // the three buses (leader, you, follower). Nothing in it feeds the countdown.
+  if (ctx.lfOpen && c.mode === 'live') {
+    $('hd-run').textContent = r.runNo ? '· Run #: ' + r.runNo + ' · ' + RC.dayClass(dayType) : '';
+    const stackEl = el('div', 'prc-stack lf-stack day-' + RC.dayClass(dayType));
+    top.classList.add('prc-top');
+    stackEl.appendChild(top);
+    const back = el('button', 'lf-back', '‹ Back to My Run'); back.type = 'button';
+    back.addEventListener('click', closeLF);
+    if (!ctx.lfView) {
+      ctx.lfEl = el('div');
+      ctx.lfView = mountLF(ctx.lfEl, { getContext: lfContext, mock: LF_MOCK });
+    }
+    body.append(back, stackEl, ctx.lfEl);
+    wakeLock(['layover', 'in_service', 'first_departure'].includes(c.st.phase));
+    $('meta').textContent = metaLine();
+    tick();
+    return;
+  }
+  const cardEl = RC.card(RC.modelFromRun(run, { runNo: r.runNo, dayType }));
+  $('hd-run').textContent = r.runNo ? '· Run #: ' + r.runNo + ' · ' + RC.dayClass(dayType) : '';
+  const hTop = cardEl.querySelector('.prc-head-top');
+  if (hTop) {
+    hTop.querySelectorAll('.prc-num, .prc-day, .pa-run').forEach(n => n.remove());
+    const hBot = cardEl.querySelector('.prc-head-bottom'); if (hBot) hBot.remove();   // routes are already on the line above
+    const p = currentPiece(c);
+    hTop.prepend(curLabel(p));
+    // The bus is only known for a run that is on now. For the next run (a
+    // later day) the block's bus right now belongs to someone else: "—".
+    if (p && c.mode === 'live') curBus(p);
+  }
+  if (r.runNo && run && !run.synthetic) attachPaddleLink(cardEl, r, run, c.date);
+  body.appendChild(RC.stack(top, cardEl, dayType));
+  // The day's additional short run, named under the regular run's card. The
+  // countdown and alerts above follow the regular run only.
+  if (r.shortRun) {
+    const ss = el('div', 'live-sect');
+    ss.appendChild(el('div', 'live-h', 'Additional short run · ' + S.fmtDate(c.date)));
+    ss.appendChild(el('div', 'leader-line', E.shortRunText(r.shortRun, run && run.shortRun)));
+    body.appendChild(ss);
+  }
+  wakeLock(c.mode === 'live' && ['layover', 'in_service', 'first_departure'].includes(c.st.phase));
+
+  // Leaders: the live tracker's scorecard for every bus still scheduled ahead
+  // of you today, the next one on top. Informational only - nothing here
+  // feeds the countdown above.
+  const lb = el('div', 'live-sect'); lb.id = 'leader-box';
+  lb.appendChild(el('div', 'live-h', 'Your leaders · live · info only'));
+  const lfBtn = el('button', 'lf-open', 'Leader / Follower ›'); lfBtn.type = 'button';
+  lfBtn.addEventListener('click', openLF);
+  lb.appendChild(lfBtn);
+  const lcards = el('div', 'leader-cards'); lcards.id = 'leader-cards';
+  lcards.innerHTML = ctx.leaderHtml || '<div class="leader-line">Looking up the buses ahead of you…</div>';
+  lb.appendChild(lcards);
+  lb.appendChild(el('div', 'leader-note', 'Countdown above is the scheduled time and does not move with your leaders.'));
+  lb.hidden = c.mode !== 'live';
+  body.appendChild(lb);
+
+  // Detours on this run's routes, as the Detours page shows them.
+  const routes = runRoutesFor(c);
+  if (routes.length) {
+    const key = routes.join(',');
+    const ds = el('div', 'live-sect'); ds.id = 'detours-box';
+    const dh = el('div', 'live-h', 'Detours · Route ' + routes.join(' / ')); dh.id = 'detours-h';
+    const dc = el('div', 'dt'); dc.id = 'route-detours';
+    dc.innerHTML = (ctx.detoursKey === key && ctx.detoursHtml) || C.detoursLoadingHtml();
+    ds.append(dh, dc);
+    body.appendChild(ds);
+  }
+
+  $('meta').textContent = metaLine();
+  tick();
+}
+
+// The countdown header's one line: where the operator stands, and what the
+// countdown counts to. A night liner filed under tomorrow reports tonight.
+function statusLine(c) {
+  const run = c.run;
+  const rep = m => 'Report ' + S.fmtClock(m) + (m < 0 ? ' the night before' : '');
+  if (c.mode === 'next') {
+    const onVac = A.resolve(S.todayIso(), ctx.overrides).source === 'vacation';
+    return (onVac ? 'On vacation · Next run ' : c.doneToday ? 'Done for today · Next run ' : 'Next run · ')
+      + S.fmtDate(c.date) + (run && run.reportMin != null ? ' · ' + rep(run.reportMin) : '');
+  }
+  const st = c.st;
+  if (st.phase === 'before_report') return 'Today · ' + (c.date === S.todayIso() ? rep(st.targetMin) : 'Report ' + S.fmtClock(st.targetMin));
+  return phaseLabel(st) + (st.targetMin != null ? ' ' + S.fmtClock(st.targetMin) : '');
+}
+
+function metaLine() {
+  const gv = ctx.gtfs && ctx.gtfs.gtfs_version ? 'GTFS ' + ctx.gtfs.gtfs_version : 'GTFS unavailable';
+  const stale = ctx.gtfs && ctx.gtfs.feed_end && ctx.gtfs.feed_end < S.todayIso().replace(/-/g, '') ? ' · FEED EXPIRED' : '';
+  return ctx.seasonLabel + ' · ' + (ctx.profile ? (ctx.profile.depotLabel || ctx.profile.depotKey) : '') + ' · ' + gv + stale;
+}
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+// ---- leader / follower view (informational) -------------------------------
+
+function openLF() { ctx.lfOpen = true; renderToday(); window.scrollTo(0, 0); }
+function closeLF() {
+  ctx.lfOpen = false;
+  if (ctx.lfView) { ctx.lfView.destroy(); ctx.lfView = ctx.lfEl = null; }
+  renderToday(); refreshLeader();
+}
+
+// What the Leader / Follower view needs, from the run on now: the piece's
+// block and TransitView routes, every trip on its GTFS routes and my trip on
+// THEIR clock (pa-schedule leaderTrips), and the pick's pull-ins so a
+// finished block is never a leader or follower.
+async function lfContext() {
+  const c = ctx.current;
+  if (!c || c.mode !== 'live' || !c.run) return { message: 'Leader / Follower shows while you are on a run.' };
+  if (c.run.synthetic) return { message: 'This run has no block in the paddle, so there is no leader or follower to show.' };
+  const p = currentPiece(c);
+  if (!p) return { message: 'No piece in progress.' };
+  const mine = (tripsFor(c.date).get(p.block) || []).filter(t => p.startMin == null || (t.s >= p.startMin - 5 && t.s <= p.endMin + 5));
+  if (!mine.length) return { message: 'Loading your block’s trips…' };
+  const { all } = await S.leaderTrips(p, c.run.dayType, c.nowMin);
+  const my = S.relevantTrip(mine, c.nowMin);
+  const shift = (my && my.dayShift) || 0;
+  const myTrip = my && (all.find(t => t.tripId === my.tripId) || { ...my, s: my.s - shift, e: my.e - shift });
+  const table = await allBlockPaddles(c).catch(() => null);
+  return { block: p.block, routes: p.routes, trips: all, myTrip, pullIns: S.pullInMap(table), knownBus: L.knownBus };
+}
+
+// ---- leader (informational) ----------------------------------------------
+
+const lineHtml = text => '<div class="leader-line">' + esc(text) + '</div>';
+
+// A run can have several leaders in a day: a different bus can be ahead of
+// you on each trip, and on each piece of a swing. Every leader still ahead
+// of you is shown, the next one on top. One drops off once all the trips it
+// leads you on are over (scheduled), unless its bus is still out on that very
+// trip, running late; and once it has pulled in or gone out of service.
+async function refreshLeader() {
+  const c = ctx.current;
+  if (c && c.run && c.mode === 'live') { const cp = currentPiece(c); if (cp) curBus(cp); }
+  if (!$('leader-cards') || !c || c.mode !== 'live' || !c.st || !c.run) return;
+  const token = ctx.leaderToken = (ctx.leaderToken || 0) + 1;
+  const show = html => {
+    if (token !== ctx.leaderToken || !$('leader-cards')) return;
+    ctx.leaderHtml = html;
+    $('leader-cards').innerHTML = html;
+  };
+  // No signal: say so instead of leaving positions that are minutes old.
+  if (!navigator.onLine) { show(lineHtml('Leader location unavailable — offline.')); return; }
+  const byBlock = tripsFor(c.date);
+  const pieces = c.run.pieces.filter(p => p.endMin == null || p.endMin >= c.nowMin);
+  if (!pieces.length) { show(lineHtml('No more pieces today.')); return; }
+  if (!pieces.some(p => byBlock.has(p.block))) { if (!ctx.leaderHtml) show(lineHtml('Loading your block’s trips…')); return; }
+  try {
+    // Every district's pull-in times ride along, so a block that has already
+    // pulled in (its later GTFS trips are phantom) is never chosen as leader.
+    const table = await allBlockPaddles(c).catch(() => null);
+    const pullIns = S.pullInMap(table), pullOuts = S.pullOutMap(table);
+    const found = new Map();      // block -> { piece, all, nowMin, active, late:Set(tripId) }
+    for (const p of pieces) {
+      const mine = (byBlock.get(p.block) || []).filter(t => p.startMin == null || (t.s >= p.startMin - 5 && t.s <= p.endMin + 5));
+      if (!mine.length) continue;
+      const { all, nowMin } = await S.leaderTrips(p, c.run.dayType, c.nowMin);
+      for (const t of mine) {
+        // My trip back on the GTFS clock, where the candidates are.
+        const ldr = C.leaderForTrip(all, p.block, { ...t, s: t.s - (t.dayShift || 0) }, pullIns);
+        if (!ldr) continue;
+        let f = found.get(ldr.block);
+        if (!f) { f = { block: ldr.block, piece: p, all, nowMin, active: false, late: new Set() }; found.set(ldr.block, f); }
+        if (t.e >= c.nowMin) f.active = true;          // a trip it leads me on is not over yet
+        else f.late.add(String(ldr.tripId));           // over by schedule: kept only if still on it
+      }
+    }
+    if (!found.size) { show(lineHtml('No bus is scheduled ahead of you for the rest of the run.')); return; }
+
+    const busesFor = new Map(), namesFor = new Map();
+    const routesKey = p => p.routes.join(',');
+    const leaders = [];
+    for (const f of found.values()) {
+      const k = routesKey(f.piece);
+      if (!busesFor.has(k)) busesFor.set(k, L.fetchRoutes(f.piece.routes));
+      const buses = await busesFor.get(k);
+      const liveBus = buses.find(b => String(b.BlockID || '') === f.block);
+      const runningLate = !!liveBus && liveBus.trip != null && f.late.has(String(liveBus.trip));
+      if (!f.active && !runningLate) continue;
+      const routes = [...new Set(f.all.filter(t => t.block === f.block).map(t => t.route))];
+      for (const rt of routes) if (!namesFor.has(rt)) namesFor.set(rt, S.routeDirectionNames(rt).catch(() => ({})));
+      const names = Object.fromEntries(await Promise.all(routes.map(async rt => [rt, await namesFor.get(rt)])));
+      await L.learnPairs(f.piece.routes, buses, f.block); // keep its bus number between trips
+      const model = C.buildBusModel({ block: f.block, allTrips: f.all, buses, nowMin: f.nowMin, dirNamesByRoute: names, pullIns, pullOuts, knownBus: L.knownBus });
+      if (model._doneForDay) continue;                  // pulled in, or out of service
+      f.buses = buses; f.names = names;
+      leaders.push({ f, model });
+    }
+    if (!leaders.length) { show(lineHtml('No bus is scheduled ahead of you for the rest of the run.')); return; }
+    const recs = await Promise.all(leaders.map(x => blockPaddle(x.f.block, c).catch(() => null)));
+    ctx.leadersOpen = ctx.leadersOpen || new Set();
+    show(leaders.map(({ f, model }, i) => {
+      // Before its pull-out a block is simply not out yet; only once that
+      // time has passed does missing live data mean it may not be running.
+      // Shown inside the card, at the bottom.
+      const note = !model._scheduledOnly ? ''
+        : model._notOutYet
+        ? 'Not in service yet — ' + (model._outIsPullOut ? 'pulls out at ' : 'first trip at ') + S.fmtClock(model._outAtMin) + '.'
+        : model.VehicleID
+        ? 'Bus ' + model.VehicleID + ' isn’t sending live data right now — likely between trips at the terminal.'
+        : 'No live data for block ' + f.block + ' — it may not be in service.';
+      // The live tracker's scorecard (block-tracker's EB / WB pages).
+      const html = C.scorecardHtml({ model, block: f.block, allTrips: f.all, buses: f.buses, nowMin: f.nowMin,
+        dirNamesByRoute: f.names, pullIns, rec: recs[i], dayType: c.run.dayType, note })
+        || C.busCardHtml(model, { rec: recs[i], leadersOpen: ctx.leadersOpen.has(f.block), note });
+      return '<div class="leader-card" data-block="' + esc(f.block) + '">' + html + '</div>';
+    }).join('').replace(/^/, '<div class="at-list pa-sc">') + '</div>');
+    C.startDueTicker();
+  } catch (_) { show(lineHtml(navigator.onLine ? 'Live lookup failed — no leader data right now.' : 'Leader location unavailable — offline.')); }
+  clearInterval(ctx.leaderTimer);
+  ctx.leaderTimer = setInterval(() => { if (document.visibilityState === 'visible') refreshLeader(); }, 30000);
+}
+
+// PO / PI and run chips for a block: this depot's paddle first, and every
+// district only if the leader belongs to another depot.
+async function blockPaddle(block, c) {
+  const { season, district } = await slugForDate(ctx.profile.depotKey, c.date);
+  if (!season) return null;
+  const entry = paddleEntry(season, c);
+  if (!entry.own && district) entry.own = await S.loadBlockPaddles([district], c.run.dayType, c.date);
+  if (entry.own && entry.own.has(String(block))) return entry.own.get(String(block));
+  const all = await allBlockPaddles(c);
+  return (all && all.get(String(block))) || null;
+}
+
+function paddleEntry(season, c) {
+  const key = season.id + '|' + c.run.dayType + '|' + c.date;   // per date: a run's version can differ by weekday
+  ctx.blockPaddles = ctx.blockPaddles || new Map();
+  let entry = ctx.blockPaddles.get(key);
+  if (!entry) { entry = {}; ctx.blockPaddles.set(key, entry); }
+  return entry;
+}
+
+// Every district's block table for this run's day, loaded once and shared:
+// the leader search needs each candidate block's pull-in time.
+async function allBlockPaddles(c) {
+  const { season } = await slugForDate(ctx.profile.depotKey, c.date);
+  if (!season) return null;
+  const entry = paddleEntry(season, c);
+  if (!entry.allP) {
+    entry.allP = S.loadManifest(season).then(ds => S.loadBlockPaddles(ds, c.run.dayType, c.date));
+    entry.allP.catch(() => { entry.allP = null; });   // retry next time instead of caching a failure
+  }
+  return entry.allP;
+}
+
+// The routes a run works, the piece in progress first.
+function runRoutesFor(c) {
+  if (!c || !c.run || c.run.synthetic) return [];
+  const cur = c.mode === 'live' && c.st && c.st.piece ? c.st.piece.routes : [];
+  return [...new Set([...cur, ...(c.run.routes || [])])];
+}
+
+async function refreshDetours() {
+  const c = ctx.current, routes = runRoutesFor(c);
+  if (!$('route-detours') || !routes.length) return;
+  // Offline: keep the last list shown (detours change slowly); coming back online refreshes it.
+  if (!navigator.onLine) { if (!ctx.detoursHtml) $('route-detours').innerHTML = C.detoursErrorHtml('Detours unavailable — offline'); return; }
+  const key = routes.join(',');
+  const token = ctx.detourToken = (ctx.detourToken || 0) + 1;
+  try {
+    const { cards, failed } = await L.fetchDetours(routes);
+    if (token !== ctx.detourToken || !$('route-detours')) return;
+    let html;
+    if (cards.length) html = C.detourCardsHtml(cards);
+    else if (failed.length === routes.length) html = C.detoursErrorHtml('Could not load detours for Route ' + routes.join(' / '));
+    else html = C.detoursEmptyHtml(routes.join(' / '));
+    if (cards.length && failed.length) html += lineHtml('Detours for Route ' + failed.join(' / ') + ' could not be loaded.');
+    ctx.detoursKey = key; ctx.detoursHtml = html;
+    $('route-detours').innerHTML = html;
+    if ($('detours-h')) $('detours-h').textContent = 'Detours · Route ' + routes.join(' / ') + ' · ' + cards.length + (cards.length === 1 ? ' detour' : ' detours');
+  } catch (_) {
+    if (token === ctx.detourToken && $('route-detours')) $('route-detours').innerHTML = C.detoursErrorHtml('Could not load detours');
+  }
+  clearInterval(ctx.detourTimer);
+  ctx.detourTimer = setInterval(() => { if (document.visibilityState === 'visible') refreshDetours(); }, 120000);
+}
+
+// Each leader scorecard's "Leaders ▸" control, exactly as on the tracker.
+function toggleLeaders(t) {
+  const tl = t.closest('.leader-tl'), cardEl = t.closest('[data-block]');
+  if (!tl || !cardEl) return;
+  const open = !tl.classList.contains('open');
+  ctx.leadersOpen = ctx.leadersOpen || new Set();
+  if (open) ctx.leadersOpen.add(cardEl.dataset.block); else ctx.leadersOpen.delete(cardEl.dataset.block);
+  tl.classList.toggle('open', open);
+  const bodyEl = tl.querySelector('.leader-body');
+  if (bodyEl) bodyEl.classList.toggle('hidden', !open);
+  if ($('leader-cards')) ctx.leaderHtml = $('leader-cards').innerHTML;
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('#leader-cards [data-lead-toggle]');
+  if (t) toggleLeaders(t);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const t = e.target.closest && e.target.closest('#leader-cards [data-lead-toggle]');
+  if (t) { e.preventDefault(); toggleLeaders(t); }
+});
+
+// The run number and PADDLE button link to the official SEPTA paddle once
+// pdfs.csv answers; a run with no paddle page keeps plain text.
+function attachPaddleLink(cardEl, r, run, iso) {
+  slugForDate(r.depotKey || ctx.profile.depotKey, iso)
+    .then(({ slug }) => S.paddleLinkFor(slug, run.dayType, r.runNo))
+    .then(url => { if (url) RC.setPaddleUrl(cardEl, url); })
+    .catch(() => {});
+}
+
+// ---- ALERTS ---------------------------------------------------------------
+// Every alert is a phone notification, sent by the server even with the app
+// closed (assets/pa-run-alerts.js plans them, functions/ sends them). There is
+// no in-app alert. Each kind has its own switch and its own lead time.
+
+const ALERT_ROWS = [
+  ['report1', 'Report alert', 'min before report'],
+  ['report2', 'Second report alert', 'min before report'],
+  ['dep', 'Departure alerts', 'min before each departure']
+];
+
+function renderAlerts() {
+  const body = $('alerts-body'); body.textContent = '';
+  const s = N.getSettings(), sup = N.support(), uid = ctx.user && ctx.user.uid;
+  body.appendChild(el('h2', 'k', 'Phone alerts'));
+  body.appendChild(el('div', 'hint', 'Sent to your phone, even when the app is closed. They use the scheduled times; a late bus ahead never moves them.'));
+  if (!P.pushConfigured()) {
+    body.appendChild(el('div', 'msgline warn', 'Phone alerts are not switched on for this app yet.'));
+    return;
+  }
+  if (sup.ios && !sup.standalone) {
+    body.appendChild(el('div', 'msgline', 'iPhone: phone alerts only work after you add this page to your Home Screen (Share → Add to Home Screen) and open it from there.'));
+  }
+  const status = el('div', 'msgline');
+
+  // Off, or on for the account but set up on another phone: one button.
+  if (!s.pushEnabled || !P.registeredHere(uid)) {
+    const on = el('button', s.pushEnabled ? 'pa-ghost' : 'pa-submit', s.pushEnabled ? 'Also send them to this phone' : 'Turn on phone alerts');
+    on.type = 'button'; on.style.marginTop = '12px';
+    on.addEventListener('click', async () => {
+      on.disabled = true; status.className = 'msgline'; status.textContent = 'Turning on…';
+      const r = await P.registerPush(uid);
+      if (!r.ok) { on.disabled = false; status.className = 'msgline err'; status.textContent = P.pushProblem(r.reason); return; }
+      if (!s.pushEnabled) await N.save({ pushEnabled: true });
+      ctx.phoneAlerts = null;
+      renderAlerts();
+      syncPhoneAlerts(true, true);
+    });
+    body.appendChild(on);
+  }
+  if (!s.pushEnabled) { body.appendChild(status); return; }
+
+  // One row per alert: switch, lead time.
+  const rows = el('div', 'al-rows');
+  const changed = patch => N.save(patch).then(() => { ctx.phoneAlerts = null; renderAlerts(); syncPhoneAlerts(true); });
+  ALERT_ROWS.forEach(([id, label, unit]) => {
+    const row = el('div', 'al-row' + (s[id + 'On'] ? '' : ' off'));
+    const sw = el('label', 'check');
+    const cb = el('input'); cb.type = 'checkbox'; cb.checked = !!s[id + 'On'];
+    cb.addEventListener('change', () => changed({ [id + 'On']: cb.checked }));
+    sw.append(cb, document.createTextNode(label));
+    const lead = el('label', 'al-lead');
+    const inp = el('input', 'pa-input'); inp.type = 'number'; inp.inputMode = 'numeric';
+    inp.min = '0'; inp.max = String(N.MAX_LEAD_MIN); inp.step = '1'; inp.value = String(s[id + 'Lead']);
+    inp.disabled = !s[id + 'On'];
+    inp.setAttribute('aria-label', label + ', ' + unit);
+    inp.addEventListener('change', () => {
+      const v = N.clampLead(inp.value, N.DEFAULTS[id + 'Lead']);
+      inp.value = String(v);
+      if (v !== s[id + 'Lead']) changed({ [id + 'Lead']: v });
+    });
+    lead.append(inp, el('span', null, unit));
+    row.append(sw, lead);
+    rows.appendChild(row);
+  });
+  body.appendChild(rows);
+
+  const pa = ctx.phoneAlerts;
+  const when = ms => new Date(ms).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  status.className = 'msgline' + (pa && pa.error ? ' err' : pa && pa.next ? ' ok' : '');
+  status.textContent = !pa ? 'Planning your alerts…'
+    : pa.error ? 'Could not save your alerts (' + pa.error + '). They will be tried again when the app next opens.'
+    : !pa.next ? 'Nothing to send in the next ' + RA.PLAN_DAYS + ' days.'
+    : 'Next: ' + when(pa.next.sendAtMs) + ' · ' + pa.next.title + '. '
+      + pa.reports + ' report and ' + pa.departures + ' departure alerts planned.';
+  body.appendChild(status);
+  body.appendChild(el('div', 'hint', 'Report alerts are planned ' + RA.PLAN_DAYS + ' days ahead and departure alerts '
+    + (RA.DEP_DAYS - 2) + ' days ahead. Open the app at least once a week to keep them coming.'));
+
+  // A real push through the server, the only honest check of "app closed".
+  if (P.registeredHere(uid)) {
+    const test = el('button', 'pa-ghost', 'Send a test phone alert in ' + RA.TEST_DELAY_MIN + ' min'); test.type = 'button';
+    test.style.marginTop = '12px';
+    const testLine = el('div', 'msgline');
+    test.addEventListener('click', async () => {
+      test.disabled = true;
+      const fb = initFirebase();
+      try {
+        const a = await RA.sendTestAlert({ db: fb.db, uid });
+        const at = new Date(a.sendAtMs).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        testLine.className = 'msgline ok';
+        testLine.textContent = 'Test alert set for ' + at + '. Close the app fully now (swipe it away) and wait. If nothing arrives by ' + at + ' plus a minute, tell us.';
+      } catch (e) {
+        testLine.className = 'msgline err';
+        testLine.textContent = 'Could not set the test alert (' + (e.code || e.message || 'error') + '). Check your signal and try again.';
+      }
+      setTimeout(() => { test.disabled = false; }, 15000);
+    });
+    body.append(test, testLine);
+  }
+  const sender = el('div', 'msgline');
+  body.appendChild(sender);
+  N.senderStatus().then(st => { const m = N.senderMessage(st); sender.textContent = m.text; sender.className = 'msgline ' + m.kind; }).catch(() => {});
+
+  const off = el('button', 'pa-ghost', 'Turn off phone alerts'); off.type = 'button'; off.style.marginTop = '16px';
+  off.addEventListener('click', async () => {
+    off.disabled = true;
+    await N.save({ pushEnabled: false });
+    ctx.phoneAlerts = null;
+    renderAlerts();
+    syncPhoneAlerts(true, true);
+  });
+  body.appendChild(off);
+  if (!pa) syncPhoneAlerts(true);
+}
+
+// ---- SCHEDULE -------------------------------------------------------------
+
+function redrawScheduleViews() {
+  if (ctx.view === 'schedule') week.render();
+  if (ctx.view === 'bulk') renderSchedule();
+}
+
+// ---- BULK EDIT (the full schedule editor) ---------------------------------
+
+function renderSchedule() {
+  if (!ctx.profile) return;
+  const form = $('sch-form'); form.textContent = '';
+  if (ctx.profile.driverType === 'regular') renderRegularForm(form); else renderWeekForm(form);
+  const vacCard = () => SU.renderVacationCard($('sch-vacation'), { onChange: () => { resetUserAlt(); renderSchedule(); } });
+  vacCard();
+  // Alternate-schedule days on the user's own routes, once the runs are looked up.
+  if (!userAltBusy) loadUserAlt().then(() => { if (ctx.view === 'bulk' && [...userAlt.values()].some(Boolean)) vacCard(); });
+  renderUpcoming();
+}
+
+function lookupLine(node, dayType, runNo, iso) {
+  return E.lookupLine(node, dayType, runNo, iso, ctx.profile && ctx.profile.depotKey);
+}
+
+function renderRegularForm(form) {
+  const st = A.getState();
+  const today = S.todayIso();
+  const dtOf = i => (i === 0 ? 'sunday' : i === 6 ? 'saturday' : 'weekday');
+  const wins = st.patterns.filter(p => p.preset === 'pick' || A.PRESETS[p.preset])
+    .slice().sort((x, y) => x.effectiveFrom.localeCompare(y.effectiveFrom));
+  const coveredBy = d => wins.find(p => p.effectiveFrom <= d && (!p.effectiveTo || d <= p.effectiveTo)) || null;
+  const runsOf = p => { const o = {}; Object.keys(p.days || {}).forEach(i => { o[+i] = (p.days[i] && p.days[i].runNo) || (p.runByDayType && p.runByDayType[dtOf(+i)]) || ''; }); return o; };
+  const range = (x, y) => S.fmtDate(x) + ' \u2013 ' + (y ? S.fmtDate(y) : 'open');
+  const summary = p => { const r = runsOf(p); return Object.keys(r).map(Number).sort((x, y) => x - y).map(i => S.DAY_SHORT[i] + ' ' + r[i]).join(' \u00b7 '); };
+
+  form.appendChild(el('h2', 'k', 'My pick(s)'));
+
+  // ---- saved windows
+  if (wins.length) {
+    const list = el('div', 'wins');
+    const listMsg = el('div', 'msgline');
+    wins.forEach(p => {
+      const row = el('div', 'win');
+      const dd = el('div', 'win-d', range(p.effectiveFrom, p.effectiveTo));
+      dd.appendChild(el('small', null, summary(p)));
+      const acts = el('div', 'win-acts');
+      const b = el('button', 'rowbtn', 'EDIT'); b.type = 'button';
+      b.addEventListener('click', () => { loadWindow(p); });
+      // Two taps to remove: the first arms it, the second deletes. Explicit
+      // days inside the block are kept; its weeks just become unregistered.
+      const rm = el('button', 'rowbtn rm', 'REMOVE'); rm.type = 'button';
+      rm.addEventListener('click', async () => {
+        if (rm.dataset.armed !== '1') { rm.dataset.armed = '1'; rm.textContent = 'TAP AGAIN'; setTimeout(() => { rm.dataset.armed = ''; rm.textContent = 'REMOVE'; }, 4000); return; }
+        rm.disabled = true;
+        try { await E.confirmWrite(A.deletePattern(p.id), () => { listMsg.textContent = E.WAITING_FOR_SIGNAL; listMsg.className = 'msgline'; }); listMsg.textContent = 'Removed ' + range(p.effectiveFrom, p.effectiveTo) + '.'; listMsg.className = 'msgline ok'; setTimeout(() => renderSchedule(), 400); }
+        catch (err) { listMsg.textContent = 'Could not remove: ' + (err.code || err.message); listMsg.className = 'msgline err'; rm.disabled = false; rm.dataset.armed = ''; rm.textContent = 'REMOVE'; }
+      });
+      acts.append(b, rm);
+      row.append(dd, acts);
+      list.appendChild(row);
+    });
+    form.appendChild(list);
+    form.appendChild(listMsg);
+  } else {
+    form.appendChild(el('div', 'hint', 'Fill your whole pick at once, or one four-week block at a time. Every day fills in by itself, and the app already knows each run\u2019s hours.'));
+  }
+
+  // ---- form state
+  const w = { start: null, end: null, days: new Set([1, 2, 3, 4, 5]), runs: {}, copySource: null, editing: null, pickStart: null, pickLabel: '', whole: null };
+  const last = wins[wins.length - 1] || null;
+  let s0 = last && last.effectiveTo ? S.addDays(last.effectiveTo, 1) : S.weekStartOf(today);
+  for (let _i = 0; _i < 520 && coveredBy(s0); _i++) s0 = S.addDays(s0, 7);
+  w.start = s0; w.end = S.addDays(s0, 27);
+  if (last) { w.days = new Set(Object.keys(last.days || {}).map(Number)); w.copySource = last; }
+
+  function loadWindow(p) {
+    w.editing = p; w.copySource = null; w.whole = null;
+    w.start = p.effectiveFrom; w.end = p.effectiveTo || S.addDays(p.effectiveFrom, 27);
+    w.days = new Set(Object.keys(p.days || {}).map(Number)); w.runs = runsOf(p);
+    drawAll();
+  }
+
+  // ---- a whole pick at once: the current pick or one already over, with
+  // the first and last day from the pick sheet (assets/pa-picks.js).
+  const pkWrap = el('div', 'pa-field'); pkWrap.style.marginTop = '12px';
+  form.appendChild(pkWrap);
+  let wholePicks = [];
+  const overlapsSaved = (from, to) => wins.some(p => !(w.editing && p === w.editing)
+    && p.effectiveFrom <= (to || '9999-12-31') && (!p.effectiveTo || p.effectiveTo >= from));
+  function drawPicks() {
+    pkWrap.textContent = '';
+    if (!wholePicks.length) return;
+    pkWrap.appendChild(el('label', 'pa-label', 'Fill a whole pick'));
+    const row = el('div', 'pick-chips');
+    wholePicks.forEach((pk, n) => {
+      const b = el('button', 'dchip pick-chip' + (w.whole && w.whole.id === pk.id ? ' on' : ''));
+      b.type = 'button';
+      b.appendChild(document.createTextNode(pk.label + (n === 0 && pk.isCurrent ? ' · now' : '')));
+      b.appendChild(el('small', null, S.fmtDate(pk.start) + ' – ' + (pk.last ? S.fmtDate(pk.last) : 'open')));
+      b.addEventListener('click', () => {
+        if (w.whole && w.whole.id === pk.id) { chooseDates(); return; }
+        w.whole = pk; w.editing = null;
+        w.start = pk.start; w.end = pk.last || null;
+        if (!w.copySource) w.copySource = last;
+        drawAll();
+      });
+      row.appendChild(b);
+    });
+    pkWrap.appendChild(row);
+  }
+  function chooseDates() {
+    w.whole = null;
+    let s = S.weekStartOf(w.start);
+    for (let _i = 0; _i < 520 && coveredBy(s); _i++) s = S.addDays(s, 7);
+    w.start = s; w.end = S.addDays(s, 27);
+    drawAll();
+  }
+
+  // ---- work days (Sunday first)
+  const dWrap = el('div', 'pa-field'); dWrap.style.marginTop = '12px';
+  dWrap.appendChild(el('label', 'pa-label', 'Work days (tap to change)'));
+  const dRow = el('div', 'days'); dWrap.appendChild(dRow); form.appendChild(dWrap);
+  function drawDays() {
+    dRow.textContent = '';
+    for (let i = 0; i < 7; i++) {
+      const b = el('button', 'dchip' + (w.days.has(i) ? ' on' : ''), S.DAY_SHORT[i].toUpperCase()); b.type = 'button';
+      b.addEventListener('click', () => { w.days.has(i) ? w.days.delete(i) : w.days.add(i); drawDays(); drawRuns(); });
+      dRow.appendChild(b);
+    }
+  }
+
+  // ---- runs, one per working day, Sunday first
+  const rWrap = el('div'); form.appendChild(rWrap);
+  function drawRuns() {
+    rWrap.textContent = '';
+    for (let i = 0; i < 7; i++) {
+      if (!w.days.has(i)) continue;
+      const f = el('div', 'pa-field');
+      f.appendChild(el('label', 'pa-label', S.DAY_NAMES[i] + ' run #'));
+      const inp = el('input', 'pa-input'); inp.type = 'text'; inp.inputMode = 'numeric'; inp.maxLength = 4; inp.placeholder = 'e.g. 209'; inp.value = w.runs[i] || '';
+      const lk = el('div', 'lookup');
+      let t; inp.addEventListener('input', () => { w.runs[i] = inp.value.trim(); clearTimeout(t); t = setTimeout(() => lookupLine(lk, dtOf(i), w.runs[i], w.start), 350); });
+      f.appendChild(inp); f.appendChild(lk);
+      if (w.runs[i]) lookupLine(lk, dtOf(i), w.runs[i], w.start);
+      rWrap.appendChild(f);
+    }
+  }
+
+  // ---- window: Starts on (Sundays) / Ends on (Saturdays) / arrows / copy
+  const winWrap = el('div'); form.appendChild(winWrap);
+  function sundays() {
+    const from = S.addDays(S.weekStartOf(today), -16 * 7);
+    const out = [];
+    for (let d = from; d <= S.addDays(S.weekStartOf(today), 30 * 7); d = S.addDays(d, 7)) out.push(d);
+    if (w.pickStart && !out.includes(w.pickStart)) out.push(w.pickStart);
+    if (!out.includes(w.start)) out.push(w.start);
+    return out.sort();
+  }
+  function saturdays() {
+    const out = [];
+    for (let d = S.addDays(w.start, 6); d <= S.addDays(w.start, 6 + 40 * 7); d = S.addDays(d, 7)) out.push(d);
+    if (!out.includes(w.end)) out.push(w.end);
+    return out.sort();
+  }
+  function drawWindow() {
+    winWrap.textContent = '';
+    if (w.whole) {
+      // Whole pick: the dates are the pick's own, no Sunday / Saturday lists.
+      const box = el('div', 'whole-pick');
+      box.appendChild(el('b', null, 'Whole ' + w.whole.label + ' pick'));
+      box.appendChild(el('span', null, S.fmtDate(w.start) + ', ' + S.fromIso(w.start).getFullYear() + ' – '
+        + (w.end ? S.fmtDate(w.end) + ', ' + S.fromIso(w.end).getFullYear() : 'until your next pick')));
+      winWrap.appendChild(box);
+      const other = el('button', 'pa-ghost', 'Choose dates instead (4 weeks at a time)'); other.type = 'button';
+      other.addEventListener('click', chooseDates);
+      winWrap.appendChild(other);
+      const st = el('div', 'hint');
+      st.textContent = 'Every day of the pick fills in with these runs.'
+        + (overlapsSaved(w.start, w.end) ? ' It overlaps saved blocks — saving replaces them for these dates.' : '');
+      winWrap.appendChild(st);
+      if (w.copySource) {
+        const cp = el('button', 'pa-ghost', 'Copy runs from ' + range(w.copySource.effectiveFrom, w.copySource.effectiveTo)); cp.type = 'button'; cp.style.marginTop = '8px';
+        cp.addEventListener('click', () => { w.days = new Set(Object.keys(w.copySource.days || {}).map(Number)); w.runs = runsOf(w.copySource); drawDays(); drawRuns(); });
+        winWrap.appendChild(cp);
+      }
+      return;
+    }
+    const row = el('div', 'form-row');
+    const fs = el('div', 'pa-field'); fs.appendChild(el('label', 'pa-label', 'Starts on (Sunday)'));
+    const ss = el('select', 'pa-select');
+    sundays().forEach(d => {
+      const o = el('option', null, S.fmtDate(d) + (d === w.pickStart ? ' \u00b7 ' + w.pickLabel + ' pick start' : (coveredBy(d) && !(w.editing && coveredBy(d) === w.editing) ? ' \u00b7 covered' : '')));
+      o.value = d; if (d === w.start) o.selected = true; ss.appendChild(o);
+    });
+    ss.addEventListener('change', () => { w.start = ss.value; if (w.end < S.addDays(w.start, 6)) w.end = S.addDays(w.start, 27); drawWindow(); drawRuns(); });
+    fs.appendChild(ss); row.appendChild(fs);
+
+    const fe = el('div', 'pa-field'); fe.appendChild(el('label', 'pa-label', 'Ends on (Saturday)'));
+    const se = el('select', 'pa-select');
+    saturdays().forEach(d => { const o = el('option', null, S.fmtDate(d) + (S.daysBetween(w.start, d) === 27 ? ' \u00b7 4 weeks' : '')); o.value = d; if (d === w.end) o.selected = true; se.appendChild(o); });
+    se.addEventListener('change', () => { w.end = se.value; drawWindow(); });
+    fe.appendChild(se); row.appendChild(fe);
+    winWrap.appendChild(row);
+
+    const nav = el('div', 'winnav');
+    const back = el('button', 'pa-ghost', '\u2190 Previous uncovered 4 weeks'); back.type = 'button';
+    const fwd  = el('button', 'pa-ghost', 'Next uncovered 4 weeks \u2192'); fwd.type = 'button';
+    back.addEventListener('click', () => {
+      let e = S.addDays(w.start, -1);
+      for (let _i = 0; _i < 520 && coveredBy(e); _i++) e = S.addDays(e, -7);
+      let s = S.addDays(e, -27);
+      for (let d = s; d <= e; d = S.addDays(d, 7)) if (coveredBy(d)) s = S.addDays(d, 7);
+      w.copySource = coveredBy(S.addDays(e, 1)) || w.editing || last;
+      w.editing = null; w.start = s; w.end = e; w.runs = {};
+      drawAll();
+    });
+    fwd.addEventListener('click', () => {
+      let s = S.addDays(w.end, 1);
+      for (let _i = 0; _i < 520 && coveredBy(s); _i++) s = S.addDays(s, 7);
+      let e = S.addDays(s, 27);
+      for (let d = S.addDays(s, 7); d <= e; d = S.addDays(d, 7)) if (coveredBy(d)) { e = S.addDays(d, -1); break; }
+      w.copySource = coveredBy(S.addDays(s, -1)) || w.editing || last;
+      w.editing = null; w.start = s; w.end = e; w.runs = {};
+      drawAll();
+    });
+    nav.append(back, fwd);
+    winWrap.appendChild(nav);
+
+    const status = el('div', 'hint');
+    const inside = coveredBy(w.start) && !(w.editing && coveredBy(w.start) === w.editing);
+    status.textContent = (w.editing ? 'Editing the saved block ' + range(w.editing.effectiveFrom, w.editing.effectiveTo) + '. '
+                        : inside ? 'This block overlaps a saved one \u2014 saving replaces the overlap. ' : '')
+                       + (w.pickLabel ? w.pickLabel + ' pick started ' + S.fmtDate(w.pickStart) + '.' : '');
+    winWrap.appendChild(status);
+
+    if (w.copySource && !(w.copySource.effectiveFrom === w.start)) {
+      const cp = el('button', 'pa-ghost', 'Copy runs from ' + range(w.copySource.effectiveFrom, w.copySource.effectiveTo)); cp.type = 'button'; cp.style.marginTop = '8px';
+      cp.addEventListener('click', () => { w.days = new Set(Object.keys(w.copySource.days || {}).map(Number)); w.runs = runsOf(w.copySource); drawDays(); drawRuns(); });
+      winWrap.appendChild(cp);
+    }
+  }
+
+  // ---- save
+  const save = el('button', 'pa-submit', 'Save block'); save.type = 'button';
+  const msg = el('div', 'msgline');
+  save.addEventListener('click', async () => {
+    if (!w.days.size) { msg.textContent = 'Pick at least one work day.'; msg.className = 'msgline err'; return; }
+    const missing = [...w.days].sort().filter(i => !w.runs[i]).map(i => S.DAY_SHORT[i]);
+    if (missing.length) { msg.textContent = 'Enter the run number for: ' + missing.join(', '); msg.className = 'msgline err'; return; }
+    if (!w.whole && w.end < S.addDays(w.start, 6)) { msg.textContent = 'The block must cover at least one week.'; msg.className = 'msgline err'; return; }
+    save.disabled = true; msg.textContent = 'Saving\u2026'; msg.className = 'msgline';
+    try {
+      const d = {}; [...w.days].forEach(i => { d[String(i)] = { runNo: w.runs[i] }; });
+      const rbt = {};
+      const wk = [1, 2, 3, 4, 5].filter(i => w.days.has(i));
+      if (wk.length) rbt.weekday = w.runs[wk[0]];
+      if (w.days.has(6)) rbt.saturday = w.runs[6];
+      if (w.days.has(0)) rbt.sunday = w.runs[0];
+      await E.confirmWrite(A.savePattern({ periodDays: 7, days: d, runByDayType: rbt, depotKey: ctx.profile.depotKey,
+                            effectiveFrom: w.start, effectiveTo: w.end, preset: 'pick', label: range(w.start, w.end) }),
+                           () => { msg.textContent = E.WAITING_FOR_SIGNAL; msg.className = 'msgline'; });
+      msg.textContent = 'Saved. ' + (w.whole ? 'Your whole ' + w.whole.label + ' pick (' + range(w.start, w.end) + ')' : range(w.start, w.end)) + ' is filled in.'; msg.className = 'msgline ok';
+      setTimeout(() => renderSchedule(), 600);
+    } catch (err) { msg.textContent = 'Could not save: ' + (err.code || err.message); msg.className = 'msgline err'; }
+    save.disabled = false;
+  });
+  form.appendChild(save); form.appendChild(msg);
+
+  function drawAll() { drawPicks(); drawDays(); drawRuns(); drawWindow(); save.textContent = w.editing ? 'Save changes' : w.whole ? 'Save whole pick' : 'Save block'; }
+  drawAll();
+
+  // The picks from the pick sheet: the current one and the ones before it.
+  S.loadSeasons().then(picks => {
+    const cur = window.PaPicks && picks.length ? window.PaPicks.current(picks, today) : null;
+    wholePicks = picks.filter(pk => pk.start <= today && (!cur || pk.startDate <= cur.startDate))
+      .map(pk => ({ ...pk, isCurrent: !!cur && pk.id === cur.id }))
+      .reverse();
+    drawPicks();
+  }).catch(() => {});
+
+  // The pick start arrives async; it only affects labels and the very first default.
+  slugForDate(ctx.profile.depotKey, today).then(({ season }) => {
+    if (!season) return;
+    w.pickStart = season.start; w.pickLabel = season.label;
+    if (!wins.length && !w.editing) { w.start = season.start; for (let _i = 0; _i < 520 && coveredBy(w.start); _i++) w.start = S.addDays(w.start, 7); w.end = S.addDays(w.start, 27); }
+    drawWindow();
+  }).catch(() => {});
+}
+
+function renderWeekForm(form) {
+  const isRelief = ctx.profile.driverType === 'relief';
+  const today = S.todayIso();
+  if (!ctx.weekCursor) ctx.weekCursor = S.weekStartOf(today);
+  const ws = ctx.weekCursor;
+
+  form.appendChild(el('h2', 'k', isRelief ? 'My week (holddown)' : 'My assignments (slate)'));
+  form.appendChild(el('div', 'hint', isRelief
+    ? 'Enter the run for each day dispatch gave you. Leave rest days blank. The app fills in the start time when the run is in the paddle.'
+    : 'Enter today or tomorrow as dispatch assigns it — or a whole week if they give you one.'));
+
+  const nav = el('div', 'week-nav'); nav.style.marginTop = '12px';
+  const prev = el('button', 'pa-ghost', '← PREV'); prev.type = 'button'; prev.style.width = 'auto';
+  const next = el('button', 'pa-ghost', 'NEXT →'); next.type = 'button'; next.style.width = 'auto';
+  const lbl = el('div', 'wk-label', S.fmtDate(ws) + ' – ' + S.fmtDate(S.addDays(ws, 6)));
+  prev.addEventListener('click', () => { ctx.weekCursor = S.addDays(ws, -7); renderSchedule(); });
+  next.addEventListener('click', () => { ctx.weekCursor = S.addDays(ws, 7); renderSchedule(); });
+  nav.append(prev, lbl, next); form.appendChild(nav);
+
+  // Relief packages, when the depot publishes them for this season.
+  const pkgWrap = el('div', 'pa-field'); form.appendChild(pkgWrap);
+  const inputs = [];
+  for (let i = 0; i < 7; i++) {
+    const date = S.addDays(ws, i);
+    const r = A.resolve(date, ctx.overrides);
+    const row = el('div', 'wk-row' + (r.holidayDate ? ' hol' : ''));
+    const d = el('div', 'd', S.DAY_SHORT[i].toUpperCase()); d.appendChild(el('small', null, S.fmtDate(date).slice(4) + (date === today ? ' · today' : '') + (r.holidayDate ? ' · holiday' : '')));
+    const f = el('div');
+    const inp = el('input', 'pa-input'); inp.type = 'text'; inp.inputMode = 'numeric'; inp.maxLength = 4; inp.placeholder = r.holidayDate ? 'Sunday schedule' : 'off';
+    if (!r.off && r.runNo) inp.value = r.runNo;
+    const lk = el('div', 'lookup');
+    let t; inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => lookupLine(lk, r.dayType, inp.value.trim(), date), 350); });
+    if (inp.value) lookupLine(lk, r.dayType, inp.value, date);
+    f.append(inp, lk); row.append(d, f); form.appendChild(row);
+    inputs.push({ date, inp, r });
+  }
+
+  slugForDate(ctx.profile.depotKey, ws).then(({ slug }) => slug ? S.loadReliefPackages(slug) : new Map()).then(pk => {
+    if (!pk || !pk.size || !isRelief) return;
+    pkgWrap.appendChild(el('label', 'pa-label', 'Fill from relief package'));
+    const sel = el('select', 'pa-select'); const o0 = el('option', null, 'Choose a package…'); o0.value = ''; sel.appendChild(o0);
+    for (const [id, days] of pk) { const o = el('option', null, 'Relief ' + id + ' · ' + S.DAY_NAMES.map(n => days[n.toLowerCase()] || 'off').join(' ')); o.value = id; sel.appendChild(o); }
+    sel.addEventListener('change', () => {
+      const days = pk.get(sel.value); if (!days) return;
+      inputs.forEach(({ inp, r }, i) => { inp.value = days[S.DAY_NAMES[i].toLowerCase()] || ''; inp.dispatchEvent(new Event('input')); });
+    });
+    pkgWrap.appendChild(sel);
+  }).catch(() => {});
+
+  const rep = el('label', 'check');
+  const cb = el('input'); cb.type = 'checkbox'; cb.checked = isRelief;
+  rep.append(cb, document.createTextNode('Repeat this week every week until I change it'));
+  form.appendChild(rep);
+  form.appendChild(el('div', 'hint', isRelief
+    ? 'Cycles usually run about four weeks but dispatch decides when they end — when your week changes, just enter the new one; earlier weeks stay as they were.'
+    : 'Leave unchecked to save only the days you entered.'));
+
+  const save = el('button', 'pa-submit', 'Save week'); save.type = 'button';
+  const msg = el('div', 'msgline');
+  save.addEventListener('click', async () => {
+    save.disabled = true; msg.textContent = 'Saving…'; msg.className = 'msgline';
+    const slow = setTimeout(() => { msg.textContent = E.WAITING_FOR_SIGNAL; }, 6000);
+    try {
+      const entries = inputs.map(({ date, inp, r }) => ({ date, runNo: inp.value.trim(), r }));
+      if (cb.checked) {
+        const d = {}; entries.forEach((e, i) => { if (e.runNo) d[String(i)] = { runNo: e.runNo }; });
+        if (!Object.keys(d).length) throw new Error('Enter at least one run.');
+        await A.savePattern({ periodDays: 7, days: d, runByDayType: {}, depotKey: ctx.profile.depotKey,
+                              effectiveFrom: ws, preset: isRelief ? 'relief-week' : 'slate-week', label: 'week of ' + ws });
+        // Explicit days in this week that disagree with the new pattern would
+        // shadow it; clear them so the pattern is what shows.
+        const clears = entries.filter(e => e.r.source === 'assignment').map(e => ({ date: e.date, remove: true }));
+        if (clears.length) await A.saveDays(clears);
+      } else {
+        const ops = [];
+        entries.forEach(e => {
+          if (e.runNo) ops.push({ date: e.date, runNo: e.runNo, status: 'scheduled', source: 'manual',
+                                  depotKey: ctx.profile.depotKey, dayType: e.r.dayType });
+          else if (e.r.source === 'assignment') ops.push({ date: e.date, remove: true });
+        });
+        if (!ops.length) throw new Error('Nothing to save.');
+        await A.saveDays(ops);
+      }
+      msg.textContent = 'Saved.'; msg.className = 'msgline ok';
+    } catch (err) { msg.textContent = 'Could not save: ' + (err.code || err.message); msg.className = 'msgline err'; }
+    clearTimeout(slow);
+    save.disabled = false;
+  });
+  form.appendChild(save); form.appendChild(msg);
+}
+
+async function renderUpcoming() {
+  const list = $('sch-list'); list.textContent = '';
+  const today = S.todayIso();
+  // Four full Sunday-Saturday weeks, starting with this week's Sunday, so
+  // the days already worked this week stay visible and editable.
+  const weekStart = S.weekStartOf(today);
+  const rows = A.resolveRange(weekStart, S.addDays(weekStart, 27), ctx.overrides);
+  for (const r of rows) {
+    // The day letters say where the day came from: blue = your pick, purple =
+    // edited, green = entered as a week (holdowner / slate). The whole line
+    // opens the day; there is no separate EDIT button.
+    const src = r.source === 'assignment'
+      ? (r.assignment && r.assignment.source === 'edit' ? ' src-edit' : ' src-manual')
+      : r.source === 'pattern' ? ' src-pattern'
+      : r.source === 'vacation' ? ' src-vac' : '';
+    const row = el('div', 'row' + (r.date === today ? ' today' : ''));
+    row.setAttribute('role', 'button'); row.tabIndex = 0;
+    row.setAttribute('aria-label', 'Edit ' + S.fmtDate(r.date));
+    row.addEventListener('click', () => openEdit(r));
+    row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(r); } });
+    const d = el('div', 'd' + src, S.DAY_SHORT[S.dowOf(r.date)].toUpperCase()); d.appendChild(el('small', null, S.fmtDate(r.date).slice(4)));
+    const runCell = el('div', 'run' + (r.off ? ' off' : ''));
+    const t = el('div', 't', '');
+    if (r.off) {
+      runCell.textContent = r.unregistered ? '—'
+        : (r.kind && A.KIND_LABELS[r.kind]) ? A.KIND_LABELS[r.kind].toUpperCase()
+        : (r.status === 'holiday' ? 'OFF · holiday' : r.status.toUpperCase());
+      // The 44 hours are a week figure, so they are named once, on the Sunday.
+      if (r.source === 'vacation' && r.date === r.vacationWeek) t.textContent = A.fmtHours(A.VACATION_WEEK_PAY_MIN) + ' h for the week';
+    } else {
+      runCell.textContent = 'RUN ' + r.runNo + (r.flags && r.flags.overtime ? ' · OT' : '');
+      runFor(r, r.date).then(run => {
+        if (run) { t.textContent = S.fmtClock(run.reportMin) + ' – ' + S.fmtClock(run.finishMin) + (A.extrasMin(r.extras) ? ' +' + A.fmtHours(A.extrasMin(r.extras)) : ''); if (run.pieces[0]) runCell.textContent += ' · ' + run.pieces.map(p => p.routeLabel).join(' / '); }
+        else t.textContent = 'not in paddle';
+        // The additional short run: its own line under the regular run.
+        if (r.shortRun) runCell.appendChild(el('div', 'short-run', '+ SHORT RUN · ' + E.shortRunText(r.shortRun, run && run.shortRun).replace(/^RUN /, '')));
+      }).catch(() => {});
+    }
+    row.append(d, runCell, t);
+    list.appendChild(row);
+  }
+  const legend = $('sch-legend');
+  if (legend) {
+    legend.textContent = 'Tap a day to change it. Past days are editable too. Day colors: blue = from your pick'
+      + (ctx.profile && ctx.profile.driverType !== 'regular' ? ', green = entered by week' : '')
+      + ', purple = edited'
+      + (A.getState().vacations.size ? ', amber = vacation' : '')
+      + '.';
+  }
+}
+
+// ---- edit sheet (shared module) ------------------------------------------
+
+function openEdit(r) {
+  E.configure({ profile: ctx.profile, onSaved: () => { resetUserAlt(); refreshToday(); redrawScheduleViews(); }, dayNotes });
+  E.openEdit(r);
+}
+
+// Expose the pure pieces for in-browser checks (no side effects).
+window.PA_HOME = { S, A, N, E, SE, computeState, ctx, week, renderSchedule, renderToday, renderAlerts, openEdit, refreshToday, swap, setView };
+// Modules linked fine: allow a future update to trigger one reload again.
+try { sessionStorage.removeItem('pa_update_reload'); } catch (_) {}
+</script>
+</body>
+</html>
