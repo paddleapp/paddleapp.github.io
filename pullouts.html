@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Pull Outs &amp; Pull Ins</title>
+
+<script src="analytics.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/pa-account.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b4ea2">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/pa-run-card.css">
+<link rel="stylesheet" href="assets/pa-scorecard.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#eef2f8;color:#08122b;font-family:'IBM Plex Sans Condensed',system-ui,sans-serif;min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+
+/* Depot picker band, like Live / Trip Sheets. */
+.po-head{position:sticky;top:60px;z-index:200;background:#0b4ea2;padding:8px 16px 12px;border-bottom:3px solid #c8102e}
+.po-title{color:#fff;font-size:19px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;text-align:center;margin:0 0 8px}
+.po-select-wrap{position:relative}
+.po-route-wrap{margin-top:8px}
+.po-select{width:100%;appearance:none;-webkit-appearance:none;background:#fff;color:#0b4ea2;border:0;border-bottom:3px solid #c8102e;border-radius:8px;
+  font:inherit;font-size:17px;font-weight:700;padding:10px 36px 9px 12px;box-shadow:0 2px 6px rgba(8,18,43,.25)}
+.po-arrow{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#c8102e;pointer-events:none;font-size:14px}
+
+/* Cards in a grid like the Paddles page: 340px columns, as many as fit (one on a phone). */
+#poList{padding:16px 12px 24px!important;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:12px;align-items:start}
+#poList > .po-msg{grid-column:1/-1}
+.po-label{padding:10px 16px 8px;font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-align:center;
+  border-bottom:1px solid #d5dce8;background:#fff}
+.po-sub{display:block;font-size:13px;font-weight:600;letter-spacing:.06em;color:#56627a;margin-top:2px}
+.po-msg{text-align:center;padding:48px 16px;color:#56627a;font-size:15px}
+
+/* One event: the time line on top of the Paddle App run card. */
+.po-ev{margin-bottom:0;scroll-margin-top:calc(68px + var(--po-hh,190px))}
+.po-time{display:flex;align-items:center;gap:8px;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#fff;background:#0b4ea2}
+.po-time .po-kind{font-size:11px;letter-spacing:.08em;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.2)}
+.po-time .po-clock{font-size:16px}
+.po-time .po-where{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.po-time .pa-blk{box-shadow:0 0 0 1px rgba(255,255,255,.55)}
+.po-time .po-due{margin-left:auto;white-space:nowrap;font-size:13px;padding:2px 7px;border-radius:10px;background:#fff;color:#0b4ea2}
+.po-ev.in .po-time{background:#6a3fc1}
+.po-ev.in .po-time .po-due{color:#6a3fc1}
+.po-ev.next .po-time .po-due{background:#ffd400;color:#2b2200}
+.po-ev.past{opacity:.5;filter:grayscale(1)}
+/* All of today's done: banner on top, then the next one with a countdown. */
+.po-done{grid-column:1/-1;border-radius:10px;overflow:hidden;border:1px solid #c9d3e3;background:#fff;box-shadow:0 2px 6px rgba(8,18,43,.08)}
+.po-done-t{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;background:#12753a;color:#fff;font-size:17px;font-weight:800;text-align:center}
+.po-done.in .po-done-t{background:#6a3fc1}
+.po-done-next{padding:12px 14px;text-align:center;font-size:16px;font-weight:600;color:#08122b;line-height:1.45}
+.po-done-next b{font-weight:800;color:#0b4ea2}
+.po-done.in .po-done-next b{color:#6a3fc1}
+.po-done-next .po-cd{display:inline-block;font-family:'IBM Plex Mono',monospace;font-weight:800;color:#c8102e;white-space:nowrap}
+.po-done-sub{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:13px;color:#56627a}
+.po-ev .prc-seg.po-hit{background:rgba(255,212,0,.22)}
+.po-ev .prc-stack{border-radius:8px;overflow:hidden}
+
+/* Pull Outs (left) | Pull Ins (right), always at the bottom. */
+.po-bar{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+  background:#fff;border-top:1px solid #d5dce8;box-shadow:0 -2px 8px rgba(8,18,43,.08)}
+.po-tab{flex:1;padding:12px 8px;border-radius:24px;border:1.5px solid #0b4ea2;background:#fff;color:#0b4ea2;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+.po-tab.on{background:#0b4ea2;color:#fff}
+.po-tab[data-po="in"]{border-color:#6a3fc1;color:#6a3fc1}
+.po-tab[data-po="in"].on{background:#6a3fc1;color:#fff}
+</style>
+<link rel="stylesheet" href="assets/pa-theme.css">
+<style>
+/* After the theme: it paints a stacked card's top light; this strip stays
+   solid blue (out) / purple (in) with white text. */
+.po-ev .prc-stack .po-time.prc-top{background:#0b4ea2 !important;color:#fff !important;border:0 !important}
+.po-ev.in .prc-stack .po-time.prc-top{background:#6a3fc1 !important}
+.po-ev .prc-stack{border:1px solid #c9d3e3 !important}
+</style>
+<link rel="stylesheet" href="assets/pa-menu.css">
+<link rel="stylesheet" href="assets/pa-tags.css">
+<script src="assets/pa-menu.js" defer></script>
+<script src="assets/pa-tags.js"></script>
+</head>
+<body>
+
+<div class="po-head">
+  <h1 class="po-title">Pull Outs &amp; Pull Ins</h1>
+  <!-- Depot, then Route (where the search field was): the route narrows the
+       list ("All routes" = all). -->
+  <div class="po-select-wrap">
+    <select id="depotSelect" class="po-select" aria-label="Depot" autocomplete="off"><option value="">Loading depots…</option></select>
+    <span class="po-arrow">▾</span>
+  </div>
+  <div class="po-select-wrap po-route-wrap">
+    <select id="routeSelect" class="po-select" aria-label="Route" autocomplete="off"><option value="">All routes</option></select>
+    <span class="po-arrow">▾</span>
+  </div>
+  <div id="poDays" class="pa-days" role="group" aria-label="Day"></div>
+</div>
+
+<div id="poLabel" class="po-label">Pull Outs</div>
+<div id="poList" class="at-list pa-sc"><div class="po-msg">Loading…</div></div>
+
+<nav class="po-bar" aria-label="Pull outs or pull ins">
+  <button type="button" class="po-tab" data-po="out">Pull Outs</button>
+  <button type="button" class="po-tab" data-po="in">Pull Ins</button>
+</nav>
+
+<script type="module">
+// ==========================================================================
+// Pull Outs / Pull Ins: every run of the depot pulling out (or in) today,
+// earliest to latest, as the Paddles page's scorecards; the list opens at
+// the current / next one (the ones already past are above, grayed).
+//
+// Today = the calendar day (same rule as Live / Trip Sheets): today's pick -
+// night liners (a run starting 11 PM-4 AM) included - plus, midnight to 4 AM,
+// last night's runs that pull in after midnight; and from 11 PM tomorrow's
+// night liners that pull out after midnight. Scheduled times only.
+// The depot is the app-wide one (bt_depot, shared with Paddles / Live).
+// ==========================================================================
+import {
+  loadSeasons, seasonFor, loadManifest, loadCalendarOverrides, dayTypeFor, dayLabel,
+  loadPaddle, normalizeRun, loadPaddleLinks, todayIso, addDays, fmtClock, minToMs
+} from './assets/pa-schedule.js';
+import { modelFromRun, card, stack } from './assets/pa-run-card.js';
+
+const NIGHT_FROM = 23 * 60, OWL_END = 4 * 60;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+
+let districts = [], overrides = {}, view = lsGet('po_view') === 'in' ? 'in' : 'out';
+let events = { out: [], in: [] }, loadSeq = 0, dayKey = '';
+// Last night's pull ins stay on the list until the last one is in (+2 min),
+// not cut at 4 AM: Midvale has some at 4:03 / 4:04 AM. Clock minutes.
+let leftoverEnd = OWL_END;
+const LEFTOVER_LOOK = 8 * 60;       // look for last night's pull ins until 8 AM
+const keyFor = now => todayIso() + '|' + (now < Math.max(OWL_END, leftoverEnd) ? 'owl' : now >= NIGHT_FROM ? 'late' : 'day');
+// Day tags: today's day (live: next / past, "in 5 min") or another day of the
+// depot's schedule (that day's list, plain). Search: run or block number.
+let selDay = '';                    // '' = today
+let doneShown = false;              // the "all of today's ... are complete" banner is up
+// Route dropdown: '' = all routes. An event's route (e.rt) is the one its
+// block runs at that pull-out / pull-in (a "21-42" piece: the trip then, else the next).
+let routeSel = lsGet('po_route');
+const inView = () => events[view].filter(e => !routeSel || e.rt === routeSel);
+const todayName = () => dayLabel(dayTypeFor(todayIso(), overrides));
+const curDist = () => districts.find(d => (d.label || d.name) === $('depotSelect').value);
+const otherDay = () => !!selDay && selDay !== todayName();
+
+// A run's start (report) as clock minutes, for the night-liner rule.
+const startClock = row => { const m = String(row.start || '').match(/(\d{1,2}):(\d{2})\s*([AP]M)/i); if (!m) return null; let h = +m[1] % 12; if (/p/i.test(m[3])) h += 12; return h * 60 + +m[2]; };
+const isNight = row => { const s = startClock(row); return s != null && (s >= NIGHT_FROM || s < OWL_END); };
+
+// One day's runs of a depot: [{ run, row, day }] with times on that day's clock.
+// `iso` picks the version worked that date of a run listed twice (Mon–Thu / Fri).
+async function runsOf(slug, dayType, iso) {
+  const rows = await loadPaddle(slug, dayType, iso);
+  return [...rows.values()].map(row => ({ row, run: normalizeRun(row, dayType), dayType }));
+}
+
+async function build() {
+  const my = ++loadSeq;
+  const label = $('depotSelect').value;
+  const dist = districts.find(d => (d.label || d.name) === label);
+  if (!dist) { $('poList').innerHTML = '<div class="po-msg">No depot</div>'; return; }
+  $('poList').innerHTML = '<div class="po-msg">Loading ' + esc(label) + '…</div>';
+  renderDays();
+  const today = todayIso(), now = nowMin();
+  if (otherDay()) {
+    // Another day: its runs on its own clock, no "now".
+    const dt = PaTags.dayKey(selDay);
+    const links = await loadPaddleLinks(dist.name).catch(() => new Map());
+    // A run listed in two versions: the one worked on this day's next date.
+    let on = addDays(today, 1);
+    for (let i = 1; i <= 7 && dayLabel(dayTypeFor(on, overrides)) !== selDay; i++) on = addDays(today, i + 1);
+    const rows = await loadPaddle(dist.name, encodeURIComponent(selDay.toLowerCase()), on).catch(() => new Map());
+    if (my !== loadSeq) return;
+    const out = [], inn = [];
+    for (const row of rows.values()) {
+      const run = normalizeRun(row, dt);
+      if (!run) continue;
+      const link = links.get(selDay + '-' + run.runNo) || links.get(dayLabel(dt) + '-' + run.runNo);
+      const url = link ? ((window.innerWidth <= 768 ? link.moblink || link.pclink : link.pclink || link.moblink) || '') : '';
+      const x = { run, row, dayType: dt };
+      run.pieces.forEach((p, i) => {
+        const base = { x, url, piece: i, block: p.block, route: p.routeLabel, p };
+        if (String(p.startType).toUpperCase() === 'O' && p.startMin != null) out.push({ ...base, min: p.startMin, at: p.startMin });
+        if (String(p.endType).toUpperCase() === 'I' && p.endMin != null) inn.push({ ...base, min: p.endMin, at: p.endMin });
+      });
+    }
+    const byTime = (a, b) => a.min - b.min || Number(a.x.run.runNo) - Number(b.x.run.runNo);
+    const ev = { out: out.sort(byTime), in: inn.sort(byTime) };
+    await addRoutes(ev);
+    if (my !== loadSeq) return;
+    events = ev;
+    fillRoutes();
+    dayKey = keyFor(now);
+    render(true);
+    return;
+  }
+  const tType = dayTypeFor(today, overrides);
+  const links = await loadPaddleLinks(dist.name).catch(() => new Map());
+  const has = t => (dist.days || []).includes(dayLabel(t));
+  const sets = [];
+  // Today's runs, on today's clock.
+  if (has(tType)) sets.push({ list: await runsOf(dist.name, tType, today).catch(() => []), shift: 0, keep: () => true });
+  // After midnight: last night's runs that pull in after midnight - until 4 AM,
+  // or later while one of them still has to pull in (then +2 min).
+  leftoverEnd = OWL_END;
+  if (now < LEFTOVER_LOOK) {
+    const yType = dayTypeFor(addDays(today, -1), overrides);
+    if (has(yType)) {
+      const list = await runsOf(dist.name, yType, addDays(today, -1)).catch(() => []);
+      let last = -1;
+      for (const x of list) if (x.run && !isNight(x.row)) for (const p of x.run.pieces)
+        if (String(p.endType).toUpperCase() === 'I' && p.endMin != null && p.endMin - 1440 >= 0) last = Math.max(last, p.endMin - 1440);
+      leftoverEnd = Math.max(OWL_END, last + 3);
+      if (now < leftoverEnd) sets.push({ list, shift: -1440, keep: x => !isNight(x.row), lastNight: true });
+    }
+  }
+  // From 11 PM: tomorrow's night liners pull out after midnight.
+  if (now >= NIGHT_FROM) {
+    const nType = dayTypeFor(addDays(today, 1), overrides);
+    if (has(nType)) sets.push({ list: await runsOf(dist.name, nType, addDays(today, 1)).catch(() => []), shift: 1440, keep: x => isNight(x.row), tonight: true });
+  }
+  if (my !== loadSeq) return;
+  const out = [], inn = [];
+  for (const set of sets) {
+    for (const x of set.list) {
+      if (!x.run || !set.keep(x)) continue;
+      const link = links.get(dayLabel(x.dayType) + '-' + x.run.runNo);
+      const url = link ? ((window.innerWidth <= 768 ? link.moblink || link.pclink : link.pclink || link.moblink) || '') : '';
+      x.run.pieces.forEach((p, i) => {
+        const base = { x, url, piece: i, block: p.block, route: p.routeLabel, p, lastNight: !!set.lastNight, tonight: !!set.tonight };
+        if (String(p.startType).toUpperCase() === 'O' && p.startMin != null) out.push({ ...base, min: p.startMin + set.shift, at: p.startMin });
+        if (String(p.endType).toUpperCase() === 'I' && p.endMin != null) {
+          const m = p.endMin + set.shift;
+          // Last night's runs: only the pull-ins after midnight.
+          if (!set.lastNight || m >= 0) inn.push({ ...base, min: m, at: p.endMin });
+        }
+      });
+    }
+  }
+  const byTime = (a, b) => a.min - b.min || Number(a.x.run.runNo) - Number(b.x.run.runNo);
+  const ev = { out: out.filter(e => !e.lastNight).sort(byTime), in: inn.filter(e => !e.tonight).sort(byTime) };
+  await addRoutes(ev);
+  if (my !== loadSeq) return;
+  events = ev;
+  fillRoutes();
+  dayKey = keyFor(now);
+  render(true);
+}
+
+// Each event's route at that moment (two-route pieces looked up in the timetable).
+async function addRoutes(ev) {
+  await Promise.all([...ev.out, ...ev.in].map(async e => {
+    e.rt = await PaTags.resolveRoute(e.route, e.block, e.x.dayType, e.at, e.p.startMin, e.p.endMin);
+  }));
+}
+// The Route dropdown: every route with a pull-out or pull-in on the day shown.
+function fillRoutes() {
+  const rank = r => { const n = parseInt(r, 10); return isNaN(n) ? [1, 0, r] : [0, n, r]; };
+  const routes = [...new Set([...events.out, ...events.in].map(e => e.rt).filter(Boolean))]
+    .sort((a, b) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || String(x[2]).localeCompare(String(y[2])); });
+  if (routeSel && !routes.includes(routeSel)) routeSel = '';
+  const sel = $('routeSelect');
+  sel.innerHTML = '<option value="">All routes</option>' + routes.map(r => '<option value="' + esc(r) + '">Route ' + esc(r) + '</option>').join('');
+  sel.value = routeSel;
+}
+
+// ---- After the last one of today: the next one ------------------------------
+// The first pull out (pull in) of the next day this depot runs, from that
+// day's own schedule - its day type by the calendar (a Friday night looks at
+// Saturday's, a holiday at its override) - and the Route dropdown's route.
+// { ms, min, iso, run, block, rt } or null; cached per depot / day / route.
+const nextCache = new Map();
+async function nextEvent(kind) {
+  const dist = curDist();
+  if (!dist) return null;
+  const today = todayIso();
+  const key = [dist.name, today, kind, routeSel].join('|');
+  if (nextCache.has(key)) return nextCache.get(key);
+  const job = (async () => {
+    const has = t => (dist.days || []).includes(dayLabel(t));
+    for (let k = 1; k <= 8; k++) {
+      const iso = addDays(today, k), dt = dayTypeFor(iso, overrides);
+      if (!has(dt)) continue;
+      const list = await runsOf(dist.name, dt, iso).catch(() => []);
+      const cand = [];
+      for (const x of list) {
+        if (!x.run) continue;
+        x.run.pieces.forEach(pc => {
+          const isOut = kind === 'out';
+          const type = String(isOut ? pc.startType : pc.endType).toUpperCase();
+          const min = isOut ? pc.startMin : pc.endMin;
+          if (type !== (isOut ? 'O' : 'I') || min == null) return;
+          const ms = minToMs(iso, min);
+          // Already on today's list (a night liner pulling out after 11 PM).
+          if (ms <= Date.now()) return;
+          cand.push({ ms, min, iso, dt, run: x.run.runNo, block: pc.block, route: pc.routeLabel, pc });
+        });
+      }
+      cand.sort((a, b) => a.ms - b.ms || Number(a.run) - Number(b.run));
+      for (const c of cand) {
+        c.rt = await PaTags.resolveRoute(c.route, c.block, c.dt, c.min, c.pc.startMin, c.pc.endMin);
+        if (!routeSel || c.rt === routeSel) return c;
+      }
+    }
+    return null;
+  })();
+  nextCache.set(key, job);
+  return job;
+}
+// "tonight" / "today" / "tomorrow" / "Monday" for a moment ahead.
+function dayWord(ms) {
+  const t = new Date(ms), n = new Date();
+  const days = Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()) - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
+  if (days <= 0) return t.getHours() >= 18 ? 'tonight' : 'today';
+  if (days === 1) return 'tomorrow';
+  return t.toLocaleDateString('en-US', { weekday: 'long' });
+}
+// "in 2 hours 31 minutes" / "in 12 minutes" / "in 40 seconds", ticking.
+function countdown(ms) {
+  const sec = Math.max(0, Math.round((ms - Date.now()) / 1000));
+  if (sec <= 0) return 'now';
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
+  const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  if (h) return 'in ' + pl(h, 'hour') + (m ? ' ' + pl(m, 'minute') : '');
+  if (m) return 'in ' + pl(m, 'minute');
+  return 'in ' + pl(sec, 'second');
+}
+// The banner (all of today's done, or none today) and, once found, the next one.
+function doneBannerHtml(none) {
+  const word = view === 'out' ? 'pull outs' : 'pull ins';
+  const head = none ? 'No ' + word + (routeSel ? ' on Route ' + esc(routeSel) : '') + ' today.'
+                    : 'All of today’s ' + word + (routeSel ? ' on Route ' + esc(routeSel) : '') + ' are complete.';
+  return '<div class="po-done' + (view === 'in' ? ' in' : '') + '"><div class="po-done-t">' + (none ? '' : '✓ ') + head + '</div>' +
+         '<div class="po-done-next" id="poNext">Finding the next ' + (view === 'out' ? 'pull out' : 'pull in') + '…</div></div>';
+}
+async function fillNext() {
+  const kind = view, seq = loadSeq;
+  const nx = await nextEvent(kind);
+  const box = $('poNext');
+  if (!box || kind !== view || seq !== loadSeq) return;
+  const what = kind === 'out' ? 'Next pull out' : 'Next pull in';
+  if (!nx) { box.textContent = 'No ' + (kind === 'out' ? 'pull out' : 'pull in') + (routeSel ? ' on Route ' + routeSel : '') + ' in the next week.'; return; }
+  box.innerHTML = what + ': <b>' + esc(dayWord(nx.ms)) + ' at ' + esc(fmtClock(nx.min)) + '</b>, ' +
+    '<span class="po-cd" data-ms="' + nx.ms + '">' + esc(countdown(nx.ms)) + '</span>.' +
+    '<div class="po-done-sub">Run ' + esc(nx.run) + ' · ' + PaTags.blockTag(nx.rt, nx.block) + ' · ' + esc(dayLabel(nx.dt)) + ' schedule</div>';
+  PaTags.resolveBlockTags(box);
+}
+// Every second: the countdown; at 0, the next day's list takes over.
+setInterval(() => {
+  const cd = document.querySelector('#poNext .po-cd');
+  if (!cd) return;
+  const ms = +cd.dataset.ms;
+  cd.textContent = countdown(ms);
+  if (ms <= Date.now()) { nextCache.clear(); build(); }
+}, 1000);
+
+function dueText(min, now) {
+  const d = min - now;
+  if (d === 0) return 'now';
+  const a = Math.abs(d), h = Math.floor(a / 60), m = a % 60;
+  const t = h ? h + 'h ' + (m ? m + 'm' : '') : m + ' min';
+  return d > 0 ? 'in ' + t.trim() : t.trim() + ' ago';
+}
+
+function renderDays() {
+  const dist = curDist();
+  const days = dist && dist.days && dist.days.length ? dist.days : PaTags.STD_DAYS;
+  const html = PaTags.dayTags(days, selDay || todayName(), todayName(), 'data-po-day');
+  if ($('poDays').innerHTML !== html) $('poDays').innerHTML = html;
+  // The sticky header's height, so a scrolled-to card isn't hidden under it.
+  document.documentElement.style.setProperty('--po-hh', document.querySelector('.po-head').offsetHeight + 'px');
+}
+
+function render(scroll) {
+  const all = inView(), now = nowMin(), other = otherDay();
+  renderDays();
+  const list = all;
+  document.querySelectorAll('.po-tab').forEach(b => b.classList.toggle('on', b.dataset.po === view));
+  const label = $('depotSelect').value;
+  const word = view === 'out' ? 'Pull Outs' : 'Pull Ins';
+  const dayName = other ? selDay : todayName();
+  $('poLabel').innerHTML = esc(word) + ' · ' + list.length + '<span class="po-sub">' + esc(label) + (routeSel ? ' · Route ' + esc(routeSel) : '') + ' · ' + esc(dayName) + ' · earliest to latest</span>';
+  const box = $('poList');
+  if (!list.length) {
+    // Today, nothing at all (the depot doesn't run today): the next one.
+    if (!other) { box.innerHTML = doneBannerHtml(true); doneShown = true; fillNext(); return; }
+    box.innerHTML = '<div class="po-msg">No ' + esc(word.toLowerCase()) + (routeSel ? ' on Route ' + esc(routeSel) : '') + ' on ' + esc(selDay) + '</div>';
+    return;
+  }
+  box.innerHTML = '';
+  // Current / next: the first one not more than 2 minutes past (today only).
+  const nextIdx = other ? -1 : list.findIndex(e => e.min >= now - 2);
+  // Today's all done: the banner + the next one on top, no "ago" labels below.
+  const allDone = !other && nextIdx < 0;
+  doneShown = allDone;
+  if (allDone) { box.innerHTML = doneBannerHtml(false); fillNext(); }
+  list.forEach((e, i) => {
+    const r = e.x.run;
+    const top = document.createElement('div');
+    top.className = 'po-time';
+    top.innerHTML = '<span class="po-kind">' + (view === 'out' ? 'OUT' : 'IN') + '</span>' +
+      '<span class="po-clock">' + esc(fmtClock(e.min)) + '</span>' +
+      // Block tag: the route the block runs at that moment ("21/9140").
+      '<span class="po-where">' + PaTags.blockTag(e.rt, e.block) +
+      (other ? '' : e.lastNight ? ' last night' : e.tonight || e.min >= 1440 ? ' tonight' : '') + '</span>' +
+      (other || allDone ? '' : '<span class="po-due" data-min="' + e.min + '">' + esc(dueText(e.min, now)) + '</span>');
+    const c = card(modelFromRun(r), { paddleUrl: e.url });
+    const seg = c.querySelectorAll('.prc-seg')[e.piece];
+    if (seg) seg.classList.add('po-hit');
+    // All the run's routes stay listed; this piece's is marked (yellow: by the schedule).
+    const rts = c.querySelector('.prc-routes');
+    if (rts) rts.innerHTML = PaTags.routeList([...new Set(r.pieces.map(p => p.routeLabel))], e.route, false, (a, b) => a === b);
+    const wrap = document.createElement('div');
+    wrap.className = 'po-ev' + (view === 'in' ? ' in' : '') + ((nextIdx >= 0 && i < nextIdx) || allDone ? ' past' : '') + (i === nextIdx ? ' next' : '');
+    wrap.appendChild(stack(top, c, r.dayType));
+    box.appendChild(wrap);
+  });
+  PaTags.resolveBlockTags(box);
+  if (scroll && (other || allDone)) window.scrollTo(0, 0);
+  else if (scroll) {
+    const target = box.querySelector('.po-ev.next') || box.lastElementChild;
+    if (target && nextIdx !== 0) requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+    else window.scrollTo(0, 0);
+  }
+}
+
+// Every 30 s: "in 5 min" / "2 min ago" and which are past; at midnight, 4 AM
+// and 11 PM the day's set changes, so build again.
+setInterval(() => {
+  const now = nowMin(), key = keyFor(now);
+  if (key !== dayKey) { build(); return; }
+  if (otherDay()) return;
+  const list = inView();
+  const nextIdx = list.findIndex(e => e.min >= now - 2);
+  // The last one just passed (or the banner shows but one is ahead): redraw.
+  if ((nextIdx < 0) !== doneShown) { render(nextIdx < 0); return; }
+  if (doneShown) return;           // all done: every card stays grayed, no "ago"
+  document.querySelectorAll('#poList .po-ev').forEach((el, i) => {
+    el.classList.toggle('past', nextIdx >= 0 && i < nextIdx);
+    el.classList.toggle('next', i === nextIdx);
+    const due = el.querySelector('.po-due');
+    if (due) due.textContent = dueText(+due.dataset.min, now);
+  });
+}, 30000);
+
+document.querySelector('.po-bar').addEventListener('click', e => {
+  const b = e.target.closest('[data-po]');
+  if (!b || b.dataset.po === view) return;
+  view = b.dataset.po; lsSet('po_view', view);
+  render(true);
+});
+
+// Route dropdown: narrows the list to that route (remembered).
+$('routeSelect').addEventListener('change', () => {
+  routeSel = $('routeSelect').value; lsSet('po_route', routeSel);
+  render(true);
+});
+// Day tags: today = the live list; another day = that day's schedule.
+$('poDays').addEventListener('click', e => {
+  const b = e.target.closest('[data-po-day]');
+  if (!b) return;
+  const d = b.dataset.poDay;
+  if ((selDay || todayName()) === d) return;
+  selDay = d === todayName() ? '' : d;
+  build();
+});
+// The depot is app-wide: bt_depot (label), like Paddles / Live / Trip Sheets.
+$('depotSelect').addEventListener('change', () => { lsSet('bt_depot', $('depotSelect').value); build(); });
+window.addEventListener('storage', e => {
+  if (e.key !== 'bt_depot' || !e.newValue || e.newValue === $('depotSelect').value) return;
+  if ([...$('depotSelect').options].some(o => o.value === e.newValue)) { $('depotSelect').value = e.newValue; build(); }
+});
+
+(async function init() {
+  try {
+    const [seasons, ov] = await Promise.all([loadSeasons(), loadCalendarOverrides().catch(() => ({}))]);
+    overrides = ov || {};
+    const season = seasonFor(seasons, todayIso());
+    districts = season ? await loadManifest(season) : [];
+    const sel = $('depotSelect');
+    sel.innerHTML = districts.map(d => '<option value="' + esc(d.label || d.name) + '">' + esc(d.label || d.name) + '</option>').join('');
+    const saved = lsGet('bt_depot');
+    if (districts.some(d => (d.label || d.name) === saved)) sel.value = saved;
+    await build();
+  } catch (e) {
+    $('poList').innerHTML = '<div class="po-msg">Could not load the schedule. Check your connection and try again.</div>';
+  }
+})();
+</script>
+<script type="module" src="assets/pa-account-ui.js"></script>
+</body>
+</html>

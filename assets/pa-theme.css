@@ -1,0 +1,282 @@
+/* Paddle App light theme: blue + red, high contrast for outdoor daylight.
+   Loaded LAST on every page, so these :root values replace each page's
+   old dark palette. Three pages families use three variable sets; all are
+   covered here. */
+:root {
+  --pa-blue: #0b4ea2;
+  --pa-blue-dark: #07356f;
+  --pa-red: #c8102e;
+
+  /* "ink" family: index, home, detours, hours, swap, fall-2026, spring/summer, pa-*.css.
+     The old accent was named --amber; it is now the main blue. */
+  --ink: #f2f5fa; --ink2: #ffffff; --ink3: #e6ecf6;
+  --line: rgba(10,30,70,0.14); --line2: rgba(10,30,70,0.26); --line3: rgba(10,30,70,0.42);
+  --dim: #56627a; --mid: #3a4660; --text: #17213a; --bright: #08122b;
+  --amber: #0b4ea2;  --amber-dim: rgba(11,78,162,0.10);
+  --green: #12753a;  --green-dim: rgba(18,117,58,0.10);
+  --blue: #1565c0;   --blue-dim: rgba(21,101,192,0.10);
+  --red: #c8102e;    --red-dim: rgba(200,16,46,0.10);
+  --violet: #5b3fb5; --violet-dim: rgba(91,63,181,0.10);
+
+  /* block-tracker family */
+  --bg: #f2f5fa; --card: #ffffff; --border: rgba(10,30,70,0.14); --border-light: rgba(10,30,70,0.26);
+  --text-dim: #3a4660; --text-faint: #56627a;
+  --accent: #0b4ea2; --accent-dim: rgba(11,78,162,0.10);
+  --yellow: #9a6700; --yellow-dim: rgba(154,103,0,0.14);
+  --orange: #b4510d; --orange-dim: rgba(180,81,13,0.12);
+  --purple: #5b3fb5; --purple-dim: rgba(91,63,181,0.10);
+  --you-glow: rgba(11,78,162,0.25);
+
+  /* holdowner / vac family: --w* were white overlays on dark. */
+  --bg2: #ffffff;
+  --accent15: rgba(11,78,162,0.12); --accent20: rgba(11,78,162,0.18);
+  --w03: rgba(10,30,70,0.03); --w05: rgba(10,30,70,0.05); --w06: rgba(10,30,70,0.06);
+  --w08: rgba(10,30,70,0.08); --w10: rgba(10,30,70,0.12); --w25: rgba(10,30,70,0.25);
+  --w30: rgba(10,30,70,0.32); --w40: rgba(10,30,70,0.45); --w50: rgba(10,30,70,0.6);
+  --w55: rgba(10,30,70,0.68);
+}
+
+body { background: var(--ink); }
+body::before { display: none !important; }   /* old dark scanline overlay */
+
+/* Header: solid blue bar with a red underline. Variables are re-scoped so
+   every child that reads them turns white on blue without per-page rules. */
+header, .header {
+  background: var(--pa-blue) !important;
+  border-bottom: 3px solid var(--pa-red) !important;
+  --ink: var(--pa-blue); --ink2: var(--pa-blue); --ink3: rgba(255,255,255,0.16);
+  --bg: var(--pa-blue); --card: rgba(255,255,255,0.16);
+  --line: rgba(255,255,255,0.28); --line2: rgba(255,255,255,0.4); --line3: rgba(255,255,255,0.6);
+  --dim: #d3e2fa; --mid: #e8f0fd; --text: #ffffff; --bright: #ffffff;
+  --text-dim: #d3e2fa; --text-faint: #d3e2fa;
+  --amber: #ffffff; --accent: #ffffff;
+  color: #fff;
+}
+header select, .header select { color: #fff; }
+header select option, .header select option { color: #08122b; background: #fff; }
+
+/* Red is the action color: the main "do it" buttons. */
+.pa-submit, .btn-live { background: var(--pa-red) !important; border-color: var(--pa-red) !important; color: #fff !important; }
+
+/* Room for the menu button: tighten header gaps and shrink the season/depot pickers. */
+header { gap: 8px !important; padding-left: 12px !important; padding-right: 12px !important; }
+.hd-depot, .hd-selects, .hd-left { gap: 6px !important; }
+/* Paddles page: the pick and depot pickers are the page's main control, so
+   they are big white buttons that read in full (no clipping), with a chevron. */
+header .hd-depot { flex: 1 1 auto; width: 100%; min-width: 0; }
+header .hd-selects { display: flex !important; flex-wrap: wrap; gap: 8px !important; width: 100%; }
+header .hd-season-select, header .hd-depot-select {
+  flex: 1 1 140px; min-width: 0; max-width: none !important;
+  -webkit-appearance: none; appearance: none;
+  font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif !important;
+  font-size: 17px !important; font-weight: 700 !important; letter-spacing: .01em;
+  color: #0b4ea2 !important; background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c8102e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: right 10px center !important; background-size: 18px !important;
+  border: 0 !important; border-bottom: 3px solid #c8102e !important; border-radius: 8px !important;
+  padding: 10px 36px 9px 12px !important; min-height: 46px; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(8,18,43,0.25);
+}
+header .hd-season-select:focus-visible, header .hd-depot-select:focus-visible { outline: 3px solid #ffd100; outline-offset: 2px; }
+.hd-dot { display: none !important; }
+
+/* Sign-in / account button sits on the blue header. */
+header .pa-btn, .header .pa-btn { color: #fff !important; border-color: rgba(255,255,255,0.7) !important; font-weight: 600; }
+
+/* Paddles / Live / menu now live in the top bar (assets/pa-menu.js): hide the old per-page copies, and sit the page header under the bar. */
+.btn-live, .btn-paddles, .header-buttons .btn-header { display: none !important; }
+header, .header { top: 60px !important; }
+
+/* One format for the second line on every page: a single page title (plus page controls), same type everywhere. */
+.hd-title, .header-title, .brand-text {
+  font-family: 'IBM Plex Mono', monospace !important; font-size: 15px !important; font-weight: 600 !important;
+  letter-spacing: .03em !important; color: #fff !important; line-height: 1.25;
+}
+.hd-sub, .hd-pick, .header-sub, .brand-sub, .app-link, .back-link, .header-badge { display: none !important; }
+#hd-ctx { color: #d3e2fa; }
+.hd-sub:has(#hd-ctx:not(:empty)) { display: block !important; }
+.header-inner { gap: 10px; flex-wrap: wrap; }
+.header-count { font-size: 12px; color: #d3e2fa; }
+
+/* ===== Unified light colours for components that carry their own dark tokens ===== */
+
+/* Account panel (pa-account.css declares --pa-* on :root AND .pa-root; both are overridden here). */
+:root, .pa-root {
+  --pa-ink: #ffffff; --pa-ink2: #ffffff; --pa-ink3: #e6ecf6;
+  --pa-line: rgba(10,30,70,0.14); --pa-line2: rgba(10,30,70,0.26); --pa-line3: rgba(10,30,70,0.42);
+  --pa-dim: #56627a; --pa-mid: #3a4660; --pa-text: #17213a; --pa-bright: #08122b;
+  --pa-amber: #0b4ea2; --pa-amber-dim: rgba(11,78,162,0.10);
+  --pa-green: #12753a; --pa-red: #c8102e; --pa-red-dim: rgba(200,16,46,0.10);
+}
+
+/* Delete account: small text link at the bottom of the panel, not a red button. */
+.pa-acct-foot { margin-top: 26px; padding-top: 12px; border-top: 1px solid var(--pa-line2); text-align: center; }
+.pa-delete-link {
+  background: none; border: 0; cursor: pointer; padding: 8px 10px;
+  font-family: var(--pa-sans); font-size: 13px; color: var(--pa-mid); text-decoration: underline;
+}
+.pa-delete-link:hover, .pa-delete-link:focus-visible { color: var(--pa-red); }
+
+/* All Trips list (block-tracker's .at-list sets its own dark tokens). */
+.at-list {
+  --ink: #ffffff; --ink2: #ffffff; --ink3: #e6ecf6;
+  --line: rgba(10,30,70,0.14); --line2: rgba(10,30,70,0.26); --line3: rgba(10,30,70,0.42);
+  --dim: #56627a; --mid: #3a4660; --text: #17213a; --bright: #08122b;
+  --amber: #0b4ea2; --green: #12753a; --green-dim: rgba(18,117,58,0.10);
+  --blue: #1565c0; --violet: #5b3fb5;
+  background: var(--bg, #f2f5fa);
+}
+.at-list .at-time .at-tag.lay { background: rgba(11,78,162,0.12); color: #0b4ea2; }
+.at-list .at-dir { background: rgba(21,101,192,0.10); color: #1565c0; }
+.at-list .at-dir.cur { background: rgba(18,117,58,0.12); color: #12753a; box-shadow: inset 0 0 0 1px rgba(18,117,58,0.45); }
+.at-list .at-runf.on { border-color: #0b4ea2; color: #0b4ea2; background: rgba(11,78,162,0.08); }
+.at-list .at-empty { color: #3a4660; }
+
+/* Run scorecards (My run + All Trips): square corners like the rest of the app. */
+.prc { border-radius: 4px; background: #ffffff; }
+.prc-head { background: #e6ecf6; }
+.prc-swing { background: #e6ecf6; }
+
+/* My Run: live bus scorecards (.bt in pa-live-cards.css) carried the tracker's
+   dark palette on the wrapper; give them the app's light colours. */
+.bt {
+  --bg: #f2f5fa; --card: #ffffff; --border: rgba(10,30,70,0.14); --border-light: rgba(10,30,70,0.26);
+  --text: #17213a; --text-dim: #3a4660; --text-faint: #56627a;
+  --accent: #0b4ea2; --accent-dim: rgba(11,78,162,0.10);
+  --green: #12753a; --green-dim: rgba(18,117,58,0.10);
+  --yellow: #9a6700; --yellow-dim: rgba(154,103,0,0.14);
+  --red: #c8102e; --red-dim: rgba(200,16,46,0.10);
+  --orange: #b4510d; --orange-dim: rgba(180,81,13,0.12);
+  --purple: #5b3fb5; --purple-dim: rgba(91,63,181,0.10);
+}
+.bt .node-card { background: #ffffff; }
+
+/* Account initials: white on the blue header. */
+.pa-avatar-circle {
+  color: #ffffff !important;
+  background: rgba(255,255,255,0.18) !important;
+  border-color: rgba(255,255,255,0.7) !important;
+}
+
+/* My Run: detour cards (.dt in pa-live-cards.css) carried the Detours page's dark palette on the wrapper. */
+.dt {
+  --ink: #ffffff; --ink2: #ffffff; --ink3: #e6ecf6;
+  --line: rgba(10,30,70,0.14); --line2: rgba(10,30,70,0.26); --line3: rgba(10,30,70,0.42);
+  --dim: #56627a; --mid: #3a4660; --text: #17213a; --bright: #08122b;
+  --amber: #0b4ea2; --amber-dim: rgba(11,78,162,0.10);
+  --green: #12753a; --green-dim: rgba(18,117,58,0.10);
+  --red: #c8102e; --red-dim: rgba(200,16,46,0.10);
+}
+.dt .detour-card { background: #ffffff; }
+
+/* Live page: depot and route pickers look like the Paddles pickers; the
+   bus/block search gets its own full-width row so nothing is cut off. */
+.header .input-row { flex-wrap: wrap; gap: 8px; }
+.header .input-row .route-select-wrap { flex: 1 1 140px !important; min-width: 0; }
+.header .input-row .select-arrow { display: none; }
+.header .input-row .route-select {
+  -webkit-appearance: none; appearance: none;
+  font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif !important;
+  font-size: 17px !important; font-weight: 700 !important;
+  color: #0b4ea2 !important; background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c8102e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: right 10px center !important; background-size: 18px !important;
+  border: 0 !important; border-bottom: 3px solid #c8102e !important; border-radius: 8px !important;
+  padding: 10px 36px 9px 12px !important; min-height: 46px;
+  box-shadow: 0 2px 6px rgba(8,18,43,0.25);
+}
+.header .input-row .route-select option { color: #08122b; background: #fff; }
+.header .input-row .bus-form { flex: 1 1 100% !important; }
+.header .input-row .bus-search {
+  background: #ffffff !important; color: #0b4ea2 !important; border: 0 !important;
+  border-bottom: 3px solid #c8102e !important; border-radius: 8px !important;
+  font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif !important; font-size: 17px !important;
+  padding: 10px 12px 9px !important; min-height: 46px; box-shadow: 0 2px 6px rgba(8,18,43,0.25);
+}
+.header .input-row .bus-search::placeholder { color: #56627a; }
+
+/* PADDLE buttons: white letters on blue. */
+.prc-paddle, .prc-paddle:hover, .prc-paddle:active,
+.btn-paddle, .btn-paddle:hover, .btn-paddle:active { color: #ffffff !important; }
+
+/* Day colours: Weekday blue, Saturday red, Sunday green (Saturday used to be
+   a second blue, too close to Weekday). */
+.day-btn.saturday { color: #c8102e !important; }
+.day-btn.active.saturday { background: rgba(200,16,46,0.10) !important; color: #c8102e !important; }
+.card.day-Saturday::before { background: #c8102e !important; }
+.card.day-Saturday .run-day, .card.day-Saturday .run-num { color: #c8102e !important; }
+.prc.day-Saturday::before, .prc-stack.day-Saturday > .prc-top::before { background: #c8102e !important; }
+.prc.day-Saturday .prc-day, .prc.day-Saturday .prc-num, .prc-stack.day-Saturday .prc-cd-status { color: #c8102e !important; }
+
+/* "My run" strip under the header (pa-strip.js): MY RUN in bold, and the OPEN
+   button styled like the Paddles page's PADDLE button. */
+.pa-strip > span:first-child { font-weight: 700 !important; color: #08122b !important; white-space: nowrap; }
+.pa-strip a {
+  background: #1565c0 !important; border: 1px solid #1565c0 !important; color: #ffffff !important;
+  font-family: 'IBM Plex Mono', monospace !important; font-size: 10px !important; font-weight: 600 !important;
+  letter-spacing: .06em; padding: 4px 10px !important; border-radius: 4px !important; white-space: nowrap; flex-shrink: 0;
+}
+.pa-strip a:hover, .pa-strip a:active { background: #0b4ea2 !important; border-color: #0b4ea2 !important; color: #ffffff !important; }
+
+/* Paddles page: Run # / Block # boxes, route chips and the sort picker are
+   the main controls - white, blue-edged and larger so nobody misses them. */
+.search-wrap input {
+  background: #ffffff !important; color: #0b4ea2 !important;
+  border: 2px solid #0b4ea2 !important; border-radius: 8px !important;
+  font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif !important;
+  font-size: 15px !important; font-weight: 700 !important;
+  padding: 9px 10px 9px 32px !important; min-height: 0; height: auto;
+  box-shadow: 0 2px 6px rgba(8,18,43,0.12);
+}
+.search-wrap input::placeholder { color: #56627a !important; font-weight: 600; }
+.search-wrap input:focus { border-color: #c8102e !important; box-shadow: 0 0 0 3px rgba(200,16,46,0.18) !important; }
+.search-wrap svg { color: #0b4ea2 !important; width: 15px; height: 15px; left: 10px !important; }
+
+.fchip {
+  background: #ffffff !important; color: #0b4ea2 !important;
+  border: 2px solid rgba(11,78,162,0.40) !important; border-radius: 6px !important;
+  font-size: 14px !important; font-weight: 700 !important; padding: 8px 12px !important;
+}
+.fchip:hover { border-color: #0b4ea2 !important; }
+.fchip.active {
+  background: #0b4ea2 !important; color: #ffffff !important;
+  border-color: #0b4ea2 !important; box-shadow: inset 0 -3px 0 #c8102e;
+}
+.fchip.active .cnt { opacity: .9 !important; color: #ffffff; }
+.fchip.dead { color: #8a93a6 !important; border-color: rgba(10,30,70,0.22) !important; border-style: dashed !important; }
+
+.sort-sel {
+  background-color: #ffffff !important; color: #0b4ea2 !important;
+  border: 2px solid #0b4ea2 !important; border-radius: 8px !important;
+  font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif !important;
+  font-size: 16px !important; font-weight: 700 !important; min-height: 46px;
+}
+.btn-only {
+  background: #ffffff !important; color: #0b4ea2 !important;
+  border: 2px solid rgba(11,78,162,0.40) !important; border-radius: 6px !important;
+  font-weight: 700 !important; min-height: 44px;
+}
+.btn-only.active { background: #0b4ea2 !important; color: #ffffff !important; border-color: #0b4ea2 !important; box-shadow: inset 0 -3px 0 #c8102e; }
+
+/* Paddles page day buttons: outlined in their day colour; the selected day is
+   filled solid with white text so it is obvious which day is showing. */
+.day-btn {
+  background: #ffffff !important; border: 2px solid currentColor !important; border-radius: 6px !important;
+  font-weight: 700 !important; font-size: 15px !important; padding: 9px 4px !important;
+  font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif !important;
+  flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap;
+}
+.day-selector { display: flex !important; gap: 6px !important; width: 100%; }
+.day-btn.sunday { color: #12753a !important; }
+.day-btn.weekday { color: #0b4ea2 !important; }
+.day-btn.saturday { color: #c8102e !important; }
+.day-btn.active { color: #ffffff !important; box-shadow: 0 2px 6px rgba(8,18,43,0.25); }
+.day-btn.active.sunday { background: #12753a !important; border-color: #12753a !important; }
+.day-btn.active.weekday { background: #0b4ea2 !important; border-color: #0b4ea2 !important; }
+.day-btn.active.saturday { background: #c8102e !important; border-color: #c8102e !important; }
+.day-btn.active.sunday, .day-btn.active.weekday, .day-btn.active.saturday { color: #ffffff !important; }
+
+/* No zoom on tap (2026-11-20): a double tap no longer zooms the page (and a
+   tap no longer waits for a second one); the viewport's maximum-scale=1 stops
+   iPhone zooming into a text box when it is tapped. */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
