@@ -4,7 +4,7 @@
 // never copies this file to paddleapp.github.io.
 // Loaded without async so gtag() exists before page scripts call it.
 (function () {
-  var GA_ID = 'G-BCQDXDG961';
+  var GA_ID = 'G-QXEKGF4DXT';
   var s = document.createElement('script');
   s.async = true;
   s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
